@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "HollowTrack"
+version = "1.0.0"
+id = "artifacts/hollowtrack"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20242
+
+[services.development]
+run = "pnpm --filter @workspace/hollowtrack run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hollowtrack", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hollowtrack/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20242"
+BASE_PATH = "/"
