@@ -1,5 +1,5 @@
 /*
- * LifeOS – Verwaltung der Tracker-Struktur
+ * HollowTrack – Verwaltung der Tracker-Struktur
  *
  * Die Datei ist in vier verständliche Bereiche geteilt:
  * 1. Datenmodell und Standardstruktur
@@ -12,7 +12,7 @@
  * Erweiterungen vorbereitet.
  */
 
-const SPEICHER_SCHLUESSEL = "lifeos-tracker-struktur";
+const SPEICHER_SCHLUESSEL = "hollowtrack-tracker-struktur";
 
 /**
  * Die Standardstruktur wird nur beim allerersten Start verwendet.
@@ -88,7 +88,7 @@ function strukturLaden() {
       ? struktur
       : strukturKopieren(STANDARD_STRUKTUR);
   } catch (fehler) {
-    console.warn("Die gespeicherte LifeOS-Struktur konnte nicht gelesen werden.", fehler);
+    console.warn("Die gespeicherte HollowTrack-Struktur konnte nicht gelesen werden.", fehler);
     return strukturKopieren(STANDARD_STRUKTUR);
   }
 }
@@ -98,7 +98,7 @@ function strukturSpeichern() {
 }
 
 function neueId() {
-  return `lifeos-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `hollowtrack-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function sortierteElemente(elemente) {
@@ -600,7 +600,7 @@ function navigationAktualisieren() {
   bereiche.forEach((bereich) => beobachter.observe(bereich));
 }
 
-function starteLifeOS() {
+function starteHollowTrack() {
   trackerStruktur = strukturLaden();
   strukturSpeichern();
   alleAnsichtenZeichnen();
@@ -609,4 +609,4 @@ function starteLifeOS() {
   navigationAktualisieren();
 }
 
-document.addEventListener("DOMContentLoaded", starteLifeOS);
+document.addEventListener("DOMContentLoaded", starteHollowTrack);
