@@ -130,8 +130,19 @@ a {
   scroll-margin-top: 4.25rem;
 }
 
+.module--wide {
+  grid-column: 1 / -1;
+}
+
 .module--intro {
   padding: 1.5rem 1.25rem;
+}
+
+.module__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .module__eyebrow {
@@ -157,6 +168,221 @@ a {
   max-width: 42rem;
   margin: 0.65rem 0 0;
   color: var(--farbe-text-sanft);
+}
+
+.module__status {
+  margin: 0;
+  color: var(--farbe-text-sanft);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.tracker-view {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.tracker-oberordner {
+  overflow: hidden;
+  border: 1px solid var(--farbe-rahmen);
+  border-radius: var(--radius-klein);
+}
+
+.tracker-oberordner__kopf,
+.tracker-unterordner__kopf,
+.verwaltungseintrag__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.tracker-oberordner__kopf {
+  padding: 0.85rem 1rem;
+  background: var(--farbe-akzent-sanft);
+}
+
+.tracker-oberordner__titel,
+.tracker-unterordner__titel {
+  margin: 0;
+  font-weight: 700;
+}
+
+.tracker-oberordner__titel {
+  font-size: 1rem;
+}
+
+.tracker-oberordner__inhalt {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+.tracker-unterordner {
+  border: 1px solid var(--farbe-rahmen);
+  border-radius: var(--radius-klein);
+}
+
+.tracker-unterordner__kopf {
+  padding: 0.7rem 0.8rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tracker-unterordner__kopf::-webkit-details-marker {
+  display: none;
+}
+
+.tracker-unterordner__kopf::before {
+  display: inline-block;
+  margin-right: 0.45rem;
+  color: var(--farbe-akzent);
+  content: "▸";
+  transition: transform 160ms ease;
+}
+
+.tracker-unterordner[open] > .tracker-unterordner__kopf::before {
+  transform: rotate(90deg);
+}
+
+.tracker-unterordner__titel {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.tracker-unterordner__inhalt {
+  padding: 0 0.8rem 0.8rem 2rem;
+}
+
+.tracker-eintrag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0;
+  color: var(--farbe-text-sanft);
+  border-top: 1px solid var(--farbe-rahmen);
+  font-size: 0.9rem;
+}
+
+.tracker-eintrag::before {
+  color: var(--farbe-akzent);
+  content: "•";
+  font-size: 1.2rem;
+}
+
+.tracker-leer {
+  margin: 0;
+  color: var(--farbe-text-sanft);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.element--deaktiviert {
+  opacity: 0.55;
+}
+
+.element--deaktiviert .tracker-oberordner__titel,
+.element--deaktiviert .tracker-unterordner__titel {
+  text-decoration: line-through;
+}
+
+.verwaltung-aktionen {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.button,
+.aktions-button {
+  min-height: 2.6rem;
+  padding: 0.6rem 0.85rem;
+  color: var(--farbe-akzent);
+  background: var(--farbe-oberflaeche);
+  border: 1px solid var(--farbe-akzent);
+  border-radius: var(--radius-klein);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.button:hover,
+.button:focus-visible,
+.aktions-button:hover,
+.aktions-button:focus-visible {
+  color: var(--farbe-oberflaeche);
+  background: var(--farbe-akzent);
+}
+
+.button:active,
+.aktions-button:active {
+  transform: translateY(1px);
+}
+
+.button--primary {
+  color: var(--farbe-oberflaeche);
+  background: var(--farbe-akzent);
+}
+
+.verwaltungsliste {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.verwaltungseintrag {
+  padding: 0.85rem;
+  background: #fbfcfc;
+  border: 1px solid var(--farbe-rahmen);
+  border-radius: var(--radius-klein);
+}
+
+.verwaltungseintrag__titel {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.verwaltungseintrag__typ {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--farbe-text-sanft);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.verwaltungseintrag__aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.aktions-button {
+  min-height: 2.2rem;
+  padding: 0.4rem 0.6rem;
+  border-color: var(--farbe-rahmen);
+  font-size: 0.78rem;
+}
+
+.aktions-button--loeschen {
+  color: #a13d3d;
+  border-color: #e2b7b7;
+}
+
+.verwaltung-leer {
+  padding: 1rem;
+  color: var(--farbe-text-sanft);
+  background: #fbfcfc;
+  border: 1px dashed var(--farbe-rahmen);
+  border-radius: var(--radius-klein);
+  font-size: 0.9rem;
+}
+
+.hinweis {
+  margin: 0;
+  color: var(--farbe-text-sanft);
+  font-size: 0.85rem;
 }
 
 .empty-state {
@@ -220,6 +446,10 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
     padding-block: 1.5rem 3rem;
+  }
+
+  .verwaltung-aktionen {
+    grid-template-columns: repeat(3, max-content);
   }
 
   .module--intro {

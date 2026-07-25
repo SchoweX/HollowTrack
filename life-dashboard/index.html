@@ -28,6 +28,7 @@
         <a class="main-navigation__link main-navigation__link--active" href="#heute">
           Heute
         </a>
+        <a class="main-navigation__link" href="#tracker">Tracker</a>
         <a class="main-navigation__link" href="#verlauf">Verlauf</a>
         <a class="main-navigation__link" href="#ernaehrung">Ernährung</a>
         <a class="main-navigation__link" href="#training">Training</a>
@@ -54,6 +55,23 @@
             Dieser Bereich ist für deine täglichen Angaben vorbereitet.
           </p>
         </div>
+      </section>
+
+      <section class="module module--wide" id="tracker" aria-labelledby="tracker-titel">
+        <div class="module__heading">
+          <div>
+            <p class="module__eyebrow">Deine Struktur</p>
+            <h2 class="module__title" id="tracker-titel">Tracker</h2>
+          </div>
+          <p class="module__status" id="tracker-status" aria-live="polite"></p>
+        </div>
+        <p class="module__description">
+          Hier siehst du deine Oberordner, Unterordner und Tracker. Messwerte
+          werden später ergänzt.
+        </p>
+
+        <!-- Die komplette Ordneransicht wird dynamisch aus script.js erzeugt. -->
+        <div class="tracker-view" id="tracker-view" aria-live="polite"></div>
       </section>
 
       <section class="module" id="verlauf" aria-labelledby="verlauf-titel">
@@ -100,13 +118,24 @@
       <section class="module" id="einstellungen" aria-labelledby="einstellungen-titel">
         <h2 class="module__title" id="einstellungen-titel">Einstellungen</h2>
         <p class="module__description">
-          Später kannst du hier deine eigenen Tracking-Felder verwalten.
+          Verwalte hier die Hierarchie deiner Tracker. Die Änderungen werden
+          zunächst nur auf diesem Gerät gespeichert.
         </p>
-        <div class="empty-state" data-empty-state="einstellungen">
-          <p class="empty-state__text">
-            Die Verwaltung der Tracking-Felder wird später ergänzt.
-          </p>
+
+        <div class="verwaltung-aktionen" aria-label="Neue Elemente erstellen">
+          <button class="button button--primary" type="button" data-aktion="oberordner-erstellen">
+            Neuer Oberordner
+          </button>
+          <button class="button" type="button" data-aktion="unterordner-erstellen">
+            Neuer Unterordner
+          </button>
+          <button class="button" type="button" data-aktion="tracker-erstellen">
+            Neuer Tracker
+          </button>
         </div>
+
+        <!-- Auch diese Ansicht wird vollständig aus der lokalen Struktur gerendert. -->
+        <div class="verwaltungsliste" id="verwaltungsliste"></div>
       </section>
     </main>
 
