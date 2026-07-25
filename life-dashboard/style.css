@@ -1,0 +1,228 @@
+:root {
+  --farbe-hintergrund: #f5f7f8;
+  --farbe-oberflaeche: #ffffff;
+  --farbe-text: #18242b;
+  --farbe-text-sanft: #65737b;
+  --farbe-akzent: #236b68;
+  --farbe-akzent-sanft: #e2f0ee;
+  --farbe-rahmen: #dce5e6;
+  --schatten-karte: 0 8px 24px rgb(24 36 43 / 6%);
+  --radius-klein: 0.5rem;
+  --radius-mittel: 1rem;
+  --maximale-breite: 64rem;
+  --schrift: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Grundlegende Browser-Abstände zurücksetzen. */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 18rem;
+  margin: 0;
+  color: var(--farbe-text);
+  background: var(--farbe-hintergrund);
+  font-family: var(--schrift);
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+}
+
+.app-header {
+  padding: 1.25rem 1rem 1rem;
+  background: var(--farbe-oberflaeche);
+  border-bottom: 1px solid var(--farbe-rahmen);
+}
+
+.app-header__inner,
+.main-navigation__inner,
+.app-main,
+.app-footer {
+  width: min(100% - 2rem, var(--maximale-breite));
+  margin-inline: auto;
+}
+
+.app-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--farbe-akzent);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.app-logo__mark {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  color: var(--farbe-oberflaeche);
+  background: var(--farbe-akzent);
+  border-radius: 0.65rem;
+  font-size: 1rem;
+}
+
+.app-header__subtitle {
+  margin: 0.6rem 0 0;
+  color: var(--farbe-text-sanft);
+  font-size: 0.875rem;
+}
+
+.main-navigation {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  overflow-x: auto;
+  background: rgb(255 255 255 / 96%);
+  border-bottom: 1px solid var(--farbe-rahmen);
+  scrollbar-width: thin;
+}
+
+.main-navigation__inner {
+  display: flex;
+  gap: 0.25rem;
+  min-width: max-content;
+  padding-block: 0.5rem;
+}
+
+.main-navigation__link {
+  padding: 0.55rem 0.75rem;
+  color: var(--farbe-text-sanft);
+  border-radius: var(--radius-klein);
+  font-size: 0.875rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.main-navigation__link:hover,
+.main-navigation__link:focus-visible {
+  color: var(--farbe-akzent);
+  background: var(--farbe-akzent-sanft);
+}
+
+.main-navigation__link--active {
+  color: var(--farbe-akzent);
+  background: var(--farbe-akzent-sanft);
+  font-weight: 600;
+}
+
+.app-main {
+  display: grid;
+  gap: 1rem;
+  padding-block: 1rem 2rem;
+}
+
+.module {
+  padding: 1.25rem;
+  background: var(--farbe-oberflaeche);
+  border: 1px solid var(--farbe-rahmen);
+  border-radius: var(--radius-mittel);
+  box-shadow: var(--schatten-karte);
+  scroll-margin-top: 4.25rem;
+}
+
+.module--intro {
+  padding: 1.5rem 1.25rem;
+}
+
+.module__eyebrow {
+  margin: 0 0 0.3rem;
+  color: var(--farbe-akzent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.module__title {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.module--intro .module__title {
+  font-size: 2rem;
+}
+
+.module__description {
+  max-width: 42rem;
+  margin: 0.65rem 0 0;
+  color: var(--farbe-text-sanft);
+}
+
+.empty-state {
+  display: grid;
+  min-height: 7rem;
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  place-content: center;
+  color: var(--farbe-text-sanft);
+  background: #fbfcfc;
+  border: 1px dashed var(--farbe-rahmen);
+  border-radius: var(--radius-klein);
+  text-align: center;
+}
+
+.empty-state__title,
+.empty-state__text {
+  margin: 0;
+}
+
+.empty-state__title {
+  color: var(--farbe-text);
+  font-size: 1rem;
+}
+
+.empty-state__text {
+  font-size: 0.9rem;
+}
+
+.app-footer {
+  padding-block: 0 2rem;
+  color: var(--farbe-text-sanft);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.app-footer p {
+  margin: 0;
+}
+
+@media (min-width: 42rem) {
+  .app-header {
+    padding-top: 1.75rem;
+  }
+
+  .app-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .app-header__subtitle {
+    margin: 0;
+  }
+
+  .main-navigation__inner {
+    justify-content: center;
+  }
+
+  .app-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    padding-block: 1.5rem 3rem;
+  }
+
+  .module--intro {
+    grid-column: 1 / -1;
+  }
+}

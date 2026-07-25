@@ -1,12 +1,119 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Life Dashboard</title>
+    <meta
+      name="description"
+      content="LifeOS – ein persönliches Dashboard für den Alltag"
+    />
+    <title>LifeOS</title>
     <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
+    <header class="app-header">
+      <div class="app-header__inner">
+        <a class="app-logo" href="#heute" aria-label="LifeOS – Heute öffnen">
+          <span class="app-logo__mark" aria-hidden="true">L</span>
+          <span>LifeOS</span>
+        </a>
+
+        <p class="app-header__subtitle">Dein persönlicher Überblick</p>
+      </div>
+    </header>
+
+    <nav class="main-navigation" aria-label="Hauptnavigation">
+      <div class="main-navigation__inner">
+        <a class="main-navigation__link main-navigation__link--active" href="#heute">
+          Heute
+        </a>
+        <a class="main-navigation__link" href="#verlauf">Verlauf</a>
+        <a class="main-navigation__link" href="#ernaehrung">Ernährung</a>
+        <a class="main-navigation__link" href="#training">Training</a>
+        <a class="main-navigation__link" href="#schlaf">Schlaf</a>
+        <a class="main-navigation__link" href="#einstellungen">Einstellungen</a>
+      </div>
+    </nav>
+
+    <main class="app-main">
+      <section class="module module--intro" id="heute" aria-labelledby="heute-titel">
+        <p class="module__eyebrow">Persönliches Dashboard</p>
+        <h1 class="module__title" id="heute-titel">Heute</h1>
+        <p class="module__description">
+          Hier entsteht später dein tägliches Protokoll.
+        </p>
+
+        <!--
+          Das Tagesformular wird später aus den Tracking-Feldern in script.js
+          erzeugt. Deshalb stehen die einzelnen Felder nicht fest im HTML.
+        -->
+        <div class="empty-state" data-empty-state="heute">
+          <h2 class="empty-state__title">Noch keine Einträge</h2>
+          <p class="empty-state__text">
+            Dieser Bereich ist für deine täglichen Angaben vorbereitet.
+          </p>
+        </div>
+      </section>
+
+      <section class="module" id="verlauf" aria-labelledby="verlauf-titel">
+        <h2 class="module__title" id="verlauf-titel">Verlauf</h2>
+        <p class="module__description">
+          Später kannst du hier deine bisherigen Einträge und Entwicklungen
+          ansehen.
+        </p>
+        <div class="empty-state" data-empty-state="verlauf">
+          <p class="empty-state__text">Noch keine Verlaufsdaten vorhanden.</p>
+        </div>
+      </section>
+
+      <section class="module" id="ernaehrung" aria-labelledby="ernaehrung-titel">
+        <h2 class="module__title" id="ernaehrung-titel">Ernährung</h2>
+        <p class="module__description">
+          Dieser Bereich ist für deine Ernährungsübersicht vorgesehen.
+        </p>
+        <div class="empty-state" data-empty-state="ernaehrung">
+          <p class="empty-state__text">Der Bereich ist noch leer.</p>
+        </div>
+      </section>
+
+      <section class="module" id="training" aria-labelledby="training-titel">
+        <h2 class="module__title" id="training-titel">Training</h2>
+        <p class="module__description">
+          Dieser Bereich ist für deine Trainingsübersicht vorgesehen.
+        </p>
+        <div class="empty-state" data-empty-state="training">
+          <p class="empty-state__text">Der Bereich ist noch leer.</p>
+        </div>
+      </section>
+
+      <section class="module" id="schlaf" aria-labelledby="schlaf-titel">
+        <h2 class="module__title" id="schlaf-titel">Schlaf</h2>
+        <p class="module__description">
+          Dieser Bereich ist für deine Schlafübersicht vorgesehen.
+        </p>
+        <div class="empty-state" data-empty-state="schlaf">
+          <p class="empty-state__text">Der Bereich ist noch leer.</p>
+        </div>
+      </section>
+
+      <section class="module" id="einstellungen" aria-labelledby="einstellungen-titel">
+        <h2 class="module__title" id="einstellungen-titel">Einstellungen</h2>
+        <p class="module__description">
+          Später kannst du hier deine eigenen Tracking-Felder verwalten.
+        </p>
+        <div class="empty-state" data-empty-state="einstellungen">
+          <p class="empty-state__text">
+            Die Verwaltung der Tracking-Felder wird später ergänzt.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>LifeOS</p>
+    </footer>
+
     <script src="script.js"></script>
   </body>
 </html>
