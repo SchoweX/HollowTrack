@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Check, ChevronDown, Folder, RotateCcw, Save } from 'lucide-react';
 
 import type { Formularwert, Struktur, Tagesdatensatz } from '../types';
 import { getAllTrackers, getViewTrackers, recordValue } from '../records';
