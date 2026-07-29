@@ -1,0 +1,17 @@
+import { useEffect, useState } from 'react';
+import { Save } from 'lucide-react';
+
+import type { Formularwert, Struktur, Tagesdatensatz } from '../types';
+import { getAllTrackers, getViewTrackers, recordValue } from '../records';
+import { valueExists } from '../utils';
+import { InputField } from './InputField';
+
+export function DayForm({ structure, date, days, onSave, onReset, success }: { structure: Struktur; date: string; days: Tagesdatensatz[]; onSave: (date: string, values: Record<string, Formularwert>, notes: string) => void; onReset: () => void; success: string }) {
+  const record = days.find((item) => item.datum === date);
+  const groups = structure.kategorien.filter((category) => category.aktiv).flatMap((category) => category.bereichIds.map((id) => structure.bereiche.find((area) => area.id === id)).filter((area): area is Bereich => Boolean(area && area.aktiv)).flatMap((area) => area.ansichtIds.map((id) => structure.ansichten.find((view) => view.id === id)).filter((view): view is Ansicht => Boolean(view && view.aktiv)).map((view) => ({ category, area, view, trackers: getViewTrackers(structure, view).filter((item) => item.aktiv) })))).filter((group) => group.trackers.length);
+  const [values, setValues] = useState<Record<string, Formularwert>>({});
+  const [notes, setNotes] = useState('');
+  useEffect(() => { const next: Record<string, Formularwert> = {}; getAllTrackers(structure).forEach((item) => { const value = recordValue(record, item); if (valueExists(value)) next[item.id] = value; }); setValues(next); setNotes(record?.notizen || ''); }, [date, record?.id, record?.geaendertAm, structure]);
+  const resetForm = () => { if (window.confirm('Möchtest du alle ungespeicherten Eingaben für diesen Tag wirklich zurücksetzen?')) { const next: Record<string, Formularwert> = {}; getAllTrackers(structure).forEach((item) => { const value = recordValue(record, item); if (valueExists(value)) next[item.id] = value; }); setValues(next); setNotes(record?.notizen || ''); onReset(); } };
+  return <div className="day-form"><div className="form-actions form-actions--top"><div><span className="form-status">{record ? 'Vorhandener Tagesdatensatz' : 'Neuer Tagesdatensatz'}</span>{success ? <span className="save-success" role="status"><Check size={14} />{success}</span> : null}</div><button className="button button--quiet" type="button" onClick={resetForm}><RotateCcw size={14} />Eingaben zurücksetzen</button></div>{groups.map((group) => <details className="form-group" open key={group.view.id}><summary className="form-group__summary"><span><Folder size={15} />{group.area.name} · {group.view.name}</span><ChevronDown size={15} /></summary><div className="form-group__fields">{group.trackers.map((item) => <InputField item={item} key={item.id} value={values[item.id]} onChange={(value) => setValues((current) => ({ ...current, [item.id]: value }))} />)}</div></details>)}<label className="field field--notes"><span className="field__label">Notizen</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} placeholder="Freie Beobachtungen und besondere Situationen" /></label><div className="form-actions"><button className="button button--primary" style={{ position: "relative", zIndex: 9999, pointerEvents: "auto", opacity: 1 }} type="button" onClick={() => onSave(date, values, notes)}><Save size={15} />{record ? 'Änderungen speichern' : 'Speichern'}</button></div></div>;
+}
