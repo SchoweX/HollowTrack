@@ -37,115 +37,30 @@ import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-type Eingabetyp =
-  | 'Zahl'
-  | 'Dezimalzahl'
-  | 'Text'
-  | 'Mehrzeiliger Text'
-  | 'Ja/Nein'
-  | 'Bewertung 0 bis 10'
-  | 'Auswahlliste'
-  | 'Datum'
-  | 'Uhrzeit'
-  | 'Dauer'
-  | 'Mehrfachauswahl';
-type TrackerDatentyp = 'Messwert' | 'Ereignis' | 'Notiz';
-type Datenquelle = 'manuell' | 'import' | 'externe-app';
-type Feldwert = string | number | boolean | string[];
-type Formularwert = Feldwert | undefined;
+import type {
+  Ansicht,
+  Bereich,
+  Datenquelle,
+  DiaetModus,
+  Eingabetyp,
+  ElementTyp,
+  ExterneAnbindung,
+  Feldwert,
+  Formularwert,
+  ImportKonflikt,
+  ImportVorschau,
+  Kategorie,
+  ModalState,
+  PageId,
+  Sicherungsinfo,
+  Struktur,
+  Tagesdatensatz,
+  Tracker,
+  TrackerDatentyp,
+  Wertebereich,
+} from './types';
 
-type Wertebereich = { min?: number; max?: number; einheit?: string };
-type Tracker = {
-  id: string;
-  name: string;
-  icon: string;
-  farbe: string;
-  aktiv: boolean;
-  schnellnotiz: boolean;
-  position: number;
-  typ: Eingabetyp;
-  datentyp: TrackerDatentyp;
-  einheit?: string;
-  untereinheit?: string;
-  referenzbereich?: Wertebereich;
-  zielbereich?: Wertebereich;
-  benachrichtigung?: { aktiv: boolean; zeit?: string };
-  schnelltracking: boolean;
-  analyseAktiv: boolean;
-  lueckenassistent: boolean;
-  datenquelle: Datenquelle;
-  optionen?: string[];
-};
-
-type Kategorie = {
-  id: string;
-  name: string;
-  icon: string;
-  aktiv: boolean;
-  position: number;
-  bereichIds: string[];
-};
-type Bereich = {
-  id: string;
-  name: string;
-  aktiv: boolean;
-  position: number;
-  ansichtIds: string[];
-};
-type Ansicht = {
-  id: string;
-  name: string;
-  aktiv: boolean;
-  position: number;
-  trackerIds: string[];
-};
-type DiaetModus = {
-  id: string;
-  name: string;
-  start?: string;
-  ende?: string;
-  ernaehrungsform?: string;
-  sport: boolean;
-  besondererVerzicht?: string;
-  referenzwerte?: Record<string, number | string>;
-};
-type ExterneAnbindung = {
-  id: 'android-health-connect' | 'apple-health' | 'fitbit' | 'garmin';
-  name: string;
-  aktiv: boolean;
-  zuletztSynchronisiert?: string;
-};
-type Struktur = {
-  version: 2;
-  kategorien: Kategorie[];
-  bereiche: Bereich[];
-  ansichten: Ansicht[];
-  tracker: Tracker[];
-  diaetModi: DiaetModus[];
-  externeAnbindungen: ExterneAnbindung[];
-};
-
-type Tagesdatensatz = {
-  id: string;
-  datum: string;
-  messwerte: Record<string, Feldwert>;
-  ereignisse: Record<string, Feldwert>;
-  notizen: string;
-  erstelltAm: string;
-  geaendertAm: string;
-};
-type Sicherungsinfo = { letzteSicherung?: string; letzterImport?: string; chatImportiert?: boolean };
-type ElementTyp = 'kategorie' | 'bereich' | 'ansicht' | 'tracker';
-type ModalState =
-  | { mode: 'create'; type: ElementTyp }
-  | { mode: 'rename'; type: 'kategorie' | 'bereich' | 'ansicht'; id: string }
-  | { mode: 'move'; type: 'bereich'; id: string }
-  | { mode: 'edit'; type: 'tracker'; id: string }
-  | null;
-type PageId = 'heute' | 'tracker' | 'verlauf' | 'ernaehrung-sport' | 'einstellungen';
 type NavItem = { id: PageId; label: string; icon: LucideIcon };
-type ImportKonflikt = 'behalten' | 'uebernehmen' | 'zusammenfuehren';
-type ImportVorschau = { tage: Tagesdatensatz[]; struktur?: Struktur; konfliktTage: string[]; neueTage: string[] };
 
 const STORAGE_STRUKTUR = 'hollowtrack-tracker-struktur';
 const STORAGE_TAGE = 'hollowtrack-tagesdaten';
@@ -177,17 +92,17 @@ function categoryIcon(icon: string): LucideIcon {
   return categoryIconMap[icon] || FolderOpen;
 }
 
-function slug(value: string): string {
-  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
-function newId(prefix: string): string { return `hollowtrack-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
-function sorted<T extends { position: number }>(items: T[] = []): T[] { return [...items].sort((a, b) => a.position - b.position); }
-function localDate(): string { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
-function formatDate(date: string): string { return new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${date}T12:00:00`)); }
-function formatDateTime(date?: string): string { return date ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date)) : 'Noch nicht vorhanden'; }
-function formatNumber(value: unknown): string { return typeof value === 'number' ? value.toLocaleString('de-DE', { maximumFractionDigits: 1 }) : String(value); }
-function valueExists(value: unknown): value is Feldwert { return value !== undefined && value !== null && value !== ''; }
+import {
+  clone,
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  localDate,
+  newId,
+  slug,
+  sorted,
+  valueExists,
+} from './utils';
 
 function makeTracker(id: string, name: string, typ: Eingabetyp, datentyp: TrackerDatentyp, position: number, einheit?: string, optionen?: string[]): Tracker {
   return {
