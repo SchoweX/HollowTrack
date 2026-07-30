@@ -1,6 +1,7 @@
 import { NotFound } from './components/NotFound';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
+import { createHistoryActions } from './historyActions';
 import {
   Activity,
   ArrowDown,
@@ -363,14 +364,18 @@ function Home() {
   const confirmDelete = () => { if (!deleteTarget) return; setStructure((current) => { const next = clone(current); if (deleteTarget.type === 'kategorie') { const category = next.kategorien.find((item) => item.id === deleteTarget.id); const areas = next.bereiche.filter((area) => category?.bereichIds.includes(area.id)); const viewIds = areas.flatMap((area) => area.ansichtIds); next.kategorien = next.kategorien.filter((item) => item.id !== deleteTarget.id); next.bereiche = next.bereiche.filter((item) => !category?.bereichIds.includes(item.id)); next.ansichten = next.ansichten.filter((item) => !viewIds.includes(item.id)); } else if (deleteTarget.type === 'bereich') { const area = next.bereiche.find((item) => item.id === deleteTarget.id); next.kategorien.forEach((item) => { item.bereichIds = item.bereichIds.filter((id) => id !== deleteTarget.id); }); next.bereiche = next.bereiche.filter((item) => item.id !== deleteTarget.id); next.ansichten = next.ansichten.filter((item) => !area?.ansichtIds.includes(item.id)); } else if (deleteTarget.type === 'ansicht') { next.bereiche.forEach((item) => { item.ansichtIds = item.ansichtIds.filter((id) => id !== deleteTarget.id); }); next.ansichten = next.ansichten.filter((item) => item.id !== deleteTarget.id); } else next.tracker = next.tracker.filter((item) => item.id !== deleteTarget.id); return next; }); setDeleteTarget(null); };
 
   const saveDay = (date: string, values: Record<string, Formularwert>, notes: string) => { const now = new Date().toISOString(); setDays((current) => { const previous = current.find((item) => item.datum === date); const next = previous ? clone(previous) : emptyRecord(date); getAllTrackers(structure).filter((item) => item.aktiv).forEach((item) => { const value = values[item.id]; const target = item.datentyp === 'Ereignis' ? next.ereignisse : next.messwerte; if (valueExists(value)) target[item.id] = ['Zahl', 'Dezimalzahl', 'Bewertung 0 bis 10', 'Dauer'].includes(item.typ) ? Number(value) : value; else delete target[item.id]; }); next.notizen = notes.trim(); next.geaendertAm = now; return previous ? current.map((item) => item.datum === date ? next : item) : [...current, next]; }); showSuccess('Tagesdatensatz erfolgreich gespeichert.'); };
-  const resetDay = () => { setSuccess(''); };
-  const selectHistoryDay = (record: Tagesdatensatz) => { setSelectedDate(record.datum); setDetailRecord(null); go('heute'); };
-  const deleteHistoryDay = (record: Tagesdatensatz) => {
-    if (!window.confirm(`Möchtest du den Eintrag vom ${formatDate(record.datum)} wirklich endgültig löschen?`)) return;
-    setDays((current) => current.filter((item) => item.id !== record.id));
-    setDetailRecord(null);
-    showSuccess('Tagesdatensatz wurde gelöscht.');
-  };
+  const {
+    resetDay,
+    selectHistoryDay,
+    deleteHistoryDay,
+  } = createHistoryActions({
+    setSuccess,
+    setSelectedDate,
+    setDetailRecord,
+    setDays,
+    goHome: () => go('heute'),
+    showSuccess,
+  });
   const exportData = () => { const exportedAt = new Date().toISOString(); const data = { version: 2, app: 'HollowTrack', exportiertAm: exportedAt, struktur: structure, tage: days }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `hollowtrack-sicherung-${exportedAt.slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); setBackupInfo((current) => ({ ...current, letzteSicherung: exportedAt })); showSuccess('JSON-Sicherung wurde erstellt.'); };
   const prepareImport = async (file: File) => { try { const parsed = JSON.parse(await file.text()) as { tage?: Tagesdatensatz[]; struktur?: Struktur }; if (!Array.isArray(parsed.tage)) throw new Error('Keine Tagesdaten gefunden.'); const unique = [...new Map(parsed.tage.filter((item) => item && item.datum).map((item) => [item.datum, item])).values()]; const conflictTage = unique.filter((item) => days.some((existing) => existing.datum === item.datum)).map((item) => item.datum); const neueTage = unique.filter((item) => !conflictTage.includes(item.datum)).map((item) => item.datum); setImportDecisions(Object.fromEntries(conflictTage.map((date) => [date, 'behalten']))); setImportPreview({ tage: unique, struktur: parsed.struktur, konfliktTage: conflictTage, neueTage }); setImportMessage(''); } catch { setImportMessage('Die Datei konnte nicht gelesen werden. Bitte wähle eine gültige HollowTrack-JSON-Datei.'); } };
   const executeImport = () => { if (!importPreview || !window.confirm('Möchtest du die angezeigten Daten wirklich importieren?')) return; setStructure((current) => importPreview.struktur ? mergeStructure(current, importPreview.struktur) : current); setDays((current) => { const result = [...current]; importPreview.tage.forEach((incoming) => { const index = result.findIndex((item) => item.datum === incoming.datum); if (index < 0) result.push(incoming); else if (importDecisions[incoming.datum] === 'uebernehmen') result[index] = incoming; else if (importDecisions[incoming.datum] === 'zusammenfuehren') result[index] = mergeRecords(result[index], incoming); }); return result; }); setBackupInfo((current) => ({ ...current, letzterImport: new Date().toISOString() })); setImportPreview(null); setImportMessage('Import erfolgreich abgeschlossen.'); showSuccess('Daten wurden erfolgreich importiert.'); };
