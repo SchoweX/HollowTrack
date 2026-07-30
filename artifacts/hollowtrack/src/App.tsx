@@ -81,17 +81,6 @@ const externalDefaults: ExterneAnbindung[] = [
   { id: 'garmin', name: 'Garmin', aktiv: false },
 ];
 
-const categoryIconMap: Record<string, LucideIcon> = {
-  Activity,
-  FolderOpen,
-  Leaf,
-  ShieldCheck,
-};
-
-function categoryIcon(icon: string): LucideIcon {
-  return categoryIconMap[icon] || FolderOpen;
-}
-
 import {
   clone,
   formatDate,
@@ -103,6 +92,7 @@ import {
   sorted,
   valueExists,
 } from './utils';
+import { categoryIcon, categoryIconMap } from './categoryIcons';
 
 function makeTracker(id: string, name: string, typ: Eingabetyp, datentyp: TrackerDatentyp, position: number, einheit?: string, optionen?: string[]): Tracker {
   return {
@@ -236,25 +226,33 @@ import { DayForm } from './components/DayForm';
 import { DayDetail } from './components/DayDetail';
 
 import { DeleteModal, Modal } from './components/Modals';
+import { useImportExportState } from './hooks/useImportExportState';
 
 function Home() {
   const [location, setLocation] = useLocation();
   const [structure, setStructure] = useState<Struktur>(loadStructure);
   const [days, setDays] = useState<Tagesdatensatz[]>(loadDays);
-  const [backupInfo, setBackupInfo] = useState<Sicherungsinfo>(loadBackupInfo);
   const [ready, setReady] = useState(false);
   const [selectedDate, setSelectedDate] = useState(localDate);
   const [success, setSuccess] = useState('');
   const [modal, setModal] = useState<ModalState>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: ElementTyp; id: string; name: string } | null>(null);
+  const {
+    backupInfo,
+    setBackupInfo,
+    importPreview,
+    setImportPreview,
+    importDecisions,
+    setImportDecisions,
+    importMessage,
+    setImportMessage,
+  } = useImportExportState(loadBackupInfo);
+
   const [detailRecord, setDetailRecord] = useState<Tagesdatensatz | null>(null);
   const [modalName, setModalName] = useState('');
   const [parentId, setParentId] = useState('');
   const [inputType, setInputType] = useState<Eingabetyp>('Text');
   const [dataType, setDataType] = useState<TrackerDatentyp>('Messwert');
-  const [importPreview, setImportPreview] = useState<ImportVorschau | null>(null);
-  const [importDecisions, setImportDecisions] = useState<Record<string, ImportKonflikt>>({});
-  const [importMessage, setImportMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const page: PageId = (['heute', 'tracker', 'verlauf', 'ernaehrung-sport', 'einstellungen'] as string[]).includes(location.slice(1)) ? location.slice(1) as PageId : 'heute';
   const go = (next: PageId) => setLocation(next === 'heute' ? '/' : `/${next}`);

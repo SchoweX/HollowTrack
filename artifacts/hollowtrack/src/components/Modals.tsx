@@ -1,8 +1,8 @@
-import { Trash2, X } from 'lucide-react';
+import { Check, Trash2, X } from 'lucide-react';
 
 import type {
-  Eingabetyp,
   ModalState,
+  Eingabetyp,
   Struktur,
   TrackerDatentyp,
 } from '../types';
