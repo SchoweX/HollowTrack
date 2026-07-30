@@ -1,0 +1,1 @@
+export function NotFound() { return <main className="app-main"><section className="module"><p className="module__eyebrow">HollowTrack</p><h1 className="module__title">Diese Seite gibt es nicht.</h1><p className="module__description">Kehre zur Startseite zurück.</p><a className="button button--primary" href={import.meta.env.BASE_URL}>Zur Startseite</a></section></main>; }
