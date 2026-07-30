@@ -1,5 +1,6 @@
 import { NotFound } from './components/NotFound';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './queryClient';
 import {
   Activity,
   ArrowDown,
@@ -383,6 +384,5 @@ function Home() {
 }
 
 function Router() { return <Switch><Route path="/" component={Home} /><Route path="/heute" component={Home} /><Route path="/tracker" component={Home} /><Route path="/verlauf" component={Home} /><Route path="/ernaehrung-sport" component={Home} /><Route path="/einstellungen" component={Home} /><Route component={NotFound} /></Switch>; }
-const queryClient = new QueryClient();
 function App() { return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><Router /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>; }
 export default App;
