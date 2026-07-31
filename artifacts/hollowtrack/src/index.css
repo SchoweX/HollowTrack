@@ -1263,3 +1263,28 @@ a {
 .verwaltungseintrag--tracker {
   margin-left: 48px;
 }
+
+.today-settings-line {
+  justify-content: flex-start;
+  gap: 0.3rem;
+}
+
+.today-settings-line__label {
+  flex: 0 1 auto;
+}
+
+.today-settings-line__settings {
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: 0;
+  padding: 0;
+}
+
+
+/* In den normalen Einstellungen nur Backup/Import/Export aus dem alten
+   Settings-Block zeigen. Die Strukturverwaltung lebt jetzt in Heute einstellen. */
+.settings-root-backup .verwaltung-aktionen,
+.settings-root-backup .verwaltungsliste {
+  display: none;
+}
