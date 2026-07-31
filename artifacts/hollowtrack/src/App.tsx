@@ -1,4 +1,3 @@
-import { NotFound } from './components/NotFound';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import {
@@ -11,8 +10,13 @@ import {
 } from './dataStore';
 import { createHistoryActions } from './historyActions';
 import { createCategoryActions } from './categoryActions';
+import { pageFromPath, pathForPage } from './navigation';
+import { useAppNavigation } from './useAppNavigation';
+import { runtimeConfig } from './runtimeConfig';
+import { WebAppRouter } from './components/WebAppRouter';
+import { createBackup, serializeBackup, parseBackup, prepareBackupImport } from './backupService';
 import { browserDialogs } from './platform';
-import { browserFilePlatform, readFileText } from './filePlatform';
+import { browserFilePlatform, readFileText, type ImportFile } from './filePlatform';
 import {
   Activity,
   ArrowDown,
@@ -41,13 +45,11 @@ import {
   Settings,
   ShieldCheck,
   Trash2,
-  Upload,
   Utensils,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
+import { useEffect, useMemo, useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -247,9 +249,10 @@ import { DayDetail } from './components/DayDetail';
 import { DeleteModal, Modal } from './components/Modals';
 import { useImportExportState } from './hooks/useImportExportState';
 import { AdminItem } from './components/AdminItem';
+import { JsonFilePicker } from './components/JsonFilePicker';
 
 function Home() {
-  const [location, setLocation] = useLocation();
+  const { location, navigate } = useAppNavigation();
   const [structure, setStructure] = useState<Struktur>(loadStructure);
   const [days, setDays] = useState<Tagesdatensatz[]>(loadDays);
   const [ready, setReady] = useState(false);
@@ -274,9 +277,8 @@ function Home() {
   const [parentId, setParentId] = useState('');
   const [inputType, setInputType] = useState<Eingabetyp>('Text');
   const [dataType, setDataType] = useState<TrackerDatentyp>('Messwert');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const page: PageId = (['heute', 'tracker', 'verlauf', 'ernaehrung-sport', 'einstellungen'] as string[]).includes(location.slice(1)) ? location.slice(1) as PageId : 'heute';
-  const go = (next: PageId) => setLocation(next === 'heute' ? '/' : `/${next}`);
+  const page: PageId = pageFromPath(location);
+  const go = (next: PageId) => navigate(pathForPage(next));
 
   useEffect(() => { saveStructureData(structure); setReady(true); }, [structure]);
   useEffect(() => { saveDaysData(days); }, [days]);
@@ -357,8 +359,46 @@ function Home() {
     goHome: () => go('heute'),
     showSuccess,
   });
-  const exportData = () => { const exportedAt = new Date().toISOString(); const data = { version: 2, app: 'HollowTrack', exportiertAm: exportedAt, struktur: structure, tage: days }; browserFilePlatform.saveFile({ filename: `hollowtrack-sicherung-${exportedAt.slice(0, 10)}.json`, mimeType: 'application/json', content: JSON.stringify(data, null, 2) }); setBackupInfo((current) => ({ ...current, letzteSicherung: exportedAt })); showSuccess('JSON-Sicherung wurde erstellt.'); };
-  const prepareImport = async (file: File) => { try { const parsed = JSON.parse(await readFileText(file)) as { tage?: Tagesdatensatz[]; struktur?: Struktur }; if (!Array.isArray(parsed.tage)) throw new Error('Keine Tagesdaten gefunden.'); const unique = [...new Map(parsed.tage.filter((item) => item && item.datum).map((item) => [item.datum, item])).values()]; const conflictTage = unique.filter((item) => days.some((existing) => existing.datum === item.datum)).map((item) => item.datum); const neueTage = unique.filter((item) => !conflictTage.includes(item.datum)).map((item) => item.datum); setImportDecisions(Object.fromEntries(conflictTage.map((date) => [date, 'behalten']))); setImportPreview({ tage: unique, struktur: parsed.struktur, konfliktTage: conflictTage, neueTage }); setImportMessage(''); } catch { setImportMessage('Die Datei konnte nicht gelesen werden. Bitte wähle eine gültige HollowTrack-JSON-Datei.'); } };
+  const exportData = () => { const exportedAt = new Date().toISOString(); const backup = createBackup(structure, days, exportedAt); browserFilePlatform.saveFile({ filename: `hollowtrack-sicherung-${exportedAt.slice(0, 10)}.json`, mimeType: 'application/json', content: serializeBackup(backup) }); setBackupInfo((current) => ({ ...current, letzteSicherung: exportedAt })); showSuccess('JSON-Sicherung wurde erstellt.'); };
+  const prepareImport = async (file: ImportFile) => {
+    try {
+      const parsed = parseBackup(await readFileText(file));
+      const prepared = prepareBackupImport(parsed);
+
+      const unique = [
+        ...new Map(
+          prepared.tage
+            .filter((item) => item && item.datum)
+            .map((item) => [item.datum, item]),
+        ).values(),
+      ];
+
+      const conflictTage = unique
+        .filter((item) => days.some((existing) => existing.datum === item.datum))
+        .map((item) => item.datum);
+
+      const neueTage = unique
+        .filter((item) => !conflictTage.includes(item.datum))
+        .map((item) => item.datum);
+
+      setImportDecisions(
+        Object.fromEntries(conflictTage.map((date) => [date, 'behalten'])),
+      );
+
+      setImportPreview({
+        tage: unique,
+        struktur: prepared.struktur,
+        konfliktTage: conflictTage,
+        neueTage,
+      });
+
+      setImportMessage('');
+    } catch {
+      setImportMessage(
+        'Die Datei konnte nicht gelesen werden. Bitte wähle eine gültige HollowTrack-JSON-Datei.',
+      );
+    }
+  };
   const executeImport = () => { if (!importPreview || !browserDialogs.confirm('Möchtest du die angezeigten Daten wirklich importieren?')) return; setStructure((current) => importPreview.struktur ? mergeStructure(current, importPreview.struktur) : current); setDays((current) => { const result = [...current]; importPreview.tage.forEach((incoming) => { const index = result.findIndex((item) => item.datum === incoming.datum); if (index < 0) result.push(incoming); else if (importDecisions[incoming.datum] === 'uebernehmen') result[index] = incoming; else if (importDecisions[incoming.datum] === 'zusammenfuehren') result[index] = mergeRecords(result[index], incoming); }); return result; }); setBackupInfo((current) => ({ ...current, letzterImport: new Date().toISOString() })); setImportPreview(null); setImportMessage('Import erfolgreich abgeschlossen.'); showSuccess('Daten wurden erfolgreich importiert.'); };
   const importChatData = () => { if (backupInfo.chatImportiert) { setImportMessage('Die bisherigen Chatdaten wurden bereits importiert.'); return; } if (!browserDialogs.confirm('Möchtest du die beiden bisherigen Chatdaten jetzt einmalig importieren?')) return; const incoming = chatDays(structure); setDays((current) => [...current, ...incoming.filter((item) => !current.some((existing) => existing.datum === item.datum))]); setBackupInfo((current) => ({ ...current, chatImportiert: true, letzterImport: new Date().toISOString() })); showSuccess('Die beiden Chatdatensätze wurden einmalig importiert.'); };
 
@@ -374,11 +414,10 @@ function Home() {
   cycleCategoryIcon={cycleCategoryIcon}
   moveCategory={moveCategory}
   openMoveArea={openMoveArea}
-/>)}</div><section className="backup-panel"><div className="backup-panel__heading"><div><p className="module__eyebrow">Datensicherung</p><h3 className="backup-panel__title">Lokale Daten verwalten</h3></div><FileJson size={22} /></div><p className="backup-warning">Die Daten werden nur auf diesem Gerät und in diesem Browser gespeichert. Regelmäßige JSON-Exporte werden empfohlen.</p><div className="backup-stats"><span><strong>{days.length}</strong> gespeicherte Tage</span><span>Letzte Sicherung: <strong>{formatDateTime(backupInfo.letzteSicherung)}</strong></span><span>Letzter Import: <strong>{formatDateTime(backupInfo.letzterImport)}</strong></span></div><div className="backup-actions"><button className="button button--primary" type="button" onClick={exportData}><Download size={15} />Daten als JSON exportieren</button><button className="button" type="button" onClick={() => fileInputRef.current?.click()}><Upload size={15} />JSON-Datei importieren</button><input ref={fileInputRef} className="visually-hidden" type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void prepareImport(file); event.target.value = ''; }} /><button className="button" type="button" onClick={importChatData} disabled={backupInfo.chatImportiert}><Import size={15} />{backupInfo.chatImportiert ? 'Chatdaten bereits importiert' : 'Bisherige Chatdaten importieren'}</button></div>{importMessage ? <p className="save-success" role="status"><Check size={14} />{importMessage}</p> : null}{importPreview ? <div className="import-preview"><h3>Importvorschau</h3><p>{importPreview.neueTage.length} neue Datensätze · {importPreview.konfliktTage.length} bereits vorhanden</p>{importPreview.konfliktTage.map((date) => <label className="import-conflict" key={date}><span>{formatDate(date)}</span><select value={importDecisions[date]} onChange={(event) => setImportDecisions((current) => ({ ...current, [date]: event.target.value as ImportKonflikt }))}><option value="behalten">Vorhandenen Eintrag behalten</option><option value="uebernehmen">Importierten Eintrag übernehmen</option><option value="zusammenfuehren">Datensätze zusammenführen</option></select></label>)}<div className="modal__actions"><button className="button button--quiet" type="button" onClick={() => setImportPreview(null)}>Import abbrechen</button><button className="button button--primary" type="button" onClick={executeImport}><Check size={14} />Import durchführen</button></div></div> : null}</section></>;
+/>)}</div><section className="backup-panel"><div className="backup-panel__heading"><div><p className="module__eyebrow">Datensicherung</p><h3 className="backup-panel__title">Lokale Daten verwalten</h3></div><FileJson size={22} /></div><p className="backup-warning">Die Daten werden nur auf diesem Gerät und in diesem Browser gespeichert. Regelmäßige JSON-Exporte werden empfohlen.</p><div className="backup-stats"><span><strong>{days.length}</strong> gespeicherte Tage</span><span>Letzte Sicherung: <strong>{formatDateTime(backupInfo.letzteSicherung)}</strong></span><span>Letzter Import: <strong>{formatDateTime(backupInfo.letzterImport)}</strong></span></div><div className="backup-actions"><button className="button button--primary" type="button" onClick={exportData}><Download size={15} />Daten als JSON exportieren</button><JsonFilePicker onFile={(file) => void prepareImport(file)} /><button className="button" type="button" onClick={importChatData} disabled={backupInfo.chatImportiert}><Import size={15} />{backupInfo.chatImportiert ? 'Chatdaten bereits importiert' : 'Bisherige Chatdaten importieren'}</button></div>{importMessage ? <p className="save-success" role="status"><Check size={14} />{importMessage}</p> : null}{importPreview ? <div className="import-preview"><h3>Importvorschau</h3><p>{importPreview.neueTage.length} neue Datensätze · {importPreview.konfliktTage.length} bereits vorhanden</p>{importPreview.konfliktTage.map((date) => <label className="import-conflict" key={date}><span>{formatDate(date)}</span><select value={importDecisions[date]} onChange={(event) => setImportDecisions((current) => ({ ...current, [date]: event.target.value as ImportKonflikt }))}><option value="behalten">Vorhandenen Eintrag behalten</option><option value="uebernehmen">Importierten Eintrag übernehmen</option><option value="zusammenfuehren">Datensätze zusammenführen</option></select></label>)}<div className="modal__actions"><button className="button button--quiet" type="button" onClick={() => setImportPreview(null)}>Import abbrechen</button><button className="button button--primary" type="button" onClick={executeImport}><Check size={14} />Import durchführen</button></div></div> : null}</section></>;
 
-  return <div className="app-shell"><header className="app-header"><div className="app-header__inner"><a className="app-logo" href={import.meta.env.BASE_URL} aria-label="HollowTrack – Heute öffnen" onClick={(event) => { event.preventDefault(); go('heute'); }}><span className="app-logo__mark">H</span><span>HollowTrack</span></a><p className="app-header__subtitle">Dein persönlicher Überblick</p><div className="app-header__meta"><span className="status-dot" />Lokal gespeichert</div></div></header><nav className="main-navigation" aria-label="Hauptnavigation"><div className="main-navigation__inner">{navigation.map(({ id, label, icon: Icon }) => <a className={`main-navigation__link ${page === id ? 'main-navigation__link--active' : ''}`} href={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/${id === 'heute' ? '' : id}`} key={id} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={15} />{label}</a>)}</div></nav><main className="app-main">{page === 'heute' ? today : null}{page === 'tracker' ? <section className="module module--wide"><div className="module__heading"><div><p className="module__eyebrow">Deine Architektur</p><h1 className="module__title">Tracker</h1></div><p className="module__status">{counts.categories} Kategorien · {counts.areas} Bereiche · {counts.views} Ansichten · {counts.trackers} Tracker</p></div><p className="module__description">Kategorien und Bereiche dienen der Übersicht. Tracker sind zentral und können in mehreren Ansichten verwendet werden.</p><div className="tracker-view"><TreeView structure={structure} /></div></section> : null}{page === 'verlauf' ? <section className="module module--wide"><SectionHeader title="Verlauf" description="Gespeicherte Tage, neuester Tag zuerst. Tippe auf einen Tag für die vollständige Ansicht." icon={History} />{sortedDays.length ? <div className="history-list">{sortedDays.map((record) => <button className="history-card" type="button" key={record.id} onClick={() => setDetailRecord(record)}><span className="history-card__date">{formatDate(record.datum)}</span><strong>{summaryFor(record, structure)}</strong><span className="history-card__hint">Vollständigen Tag öffnen</span></button>)}</div> : <EmptyState text="Noch keine Verlaufsdaten vorhanden." icon={Clock3} />}</section> : null}{page === 'ernaehrung-sport' ? <><section className="module"><SectionHeader title="Ernährung" description="Ernährungswerte deiner gespeicherten Tage werden über zentrale Tracker erfasst." icon={Utensils} /><EmptyState text="Nutze „Heute“, um Ernährung zu erfassen." icon={Leaf} /></section><section className="module"><SectionHeader title="Sport & Aktivität" description="Training und Aktivität bleiben in derselben Tageserfassung und erzeugen keine doppelten Messdaten." icon={Dumbbell} /><EmptyState text="Nutze „Heute“, um Training und Aktivität zu erfassen." icon={Activity} /></section></> : null}{page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content">{settings}</div></>}</section> : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={() => selectHistoryDay(detailRecord)} onDelete={() => deleteHistoryDay(detailRecord)} /> : null}</div>;
+  return <div className="app-shell"><header className="app-header"><div className="app-header__inner"><a className="app-logo" href={runtimeConfig.basePath} aria-label="HollowTrack – Heute öffnen" onClick={(event) => { event.preventDefault(); go('heute'); }}><span className="app-logo__mark">H</span><span>HollowTrack</span></a><p className="app-header__subtitle">Dein persönlicher Überblick</p><div className="app-header__meta"><span className="status-dot" />Lokal gespeichert</div></div></header><nav className="main-navigation" aria-label="Hauptnavigation"><div className="main-navigation__inner">{navigation.map(({ id, label, icon: Icon }) => <a className={`main-navigation__link ${page === id ? 'main-navigation__link--active' : ''}`} href={`${runtimeConfig.basePath.replace(/\/$/, '')}/${id === 'heute' ? '' : id}`} key={id} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={15} />{label}</a>)}</div></nav><main className="app-main">{page === 'heute' ? today : null}{page === 'tracker' ? <section className="module module--wide"><div className="module__heading"><div><p className="module__eyebrow">Deine Architektur</p><h1 className="module__title">Tracker</h1></div><p className="module__status">{counts.categories} Kategorien · {counts.areas} Bereiche · {counts.views} Ansichten · {counts.trackers} Tracker</p></div><p className="module__description">Kategorien und Bereiche dienen der Übersicht. Tracker sind zentral und können in mehreren Ansichten verwendet werden.</p><div className="tracker-view"><TreeView structure={structure} /></div></section> : null}{page === 'verlauf' ? <section className="module module--wide"><SectionHeader title="Verlauf" description="Gespeicherte Tage, neuester Tag zuerst. Tippe auf einen Tag für die vollständige Ansicht." icon={History} />{sortedDays.length ? <div className="history-list">{sortedDays.map((record) => <button className="history-card" type="button" key={record.id} onClick={() => setDetailRecord(record)}><span className="history-card__date">{formatDate(record.datum)}</span><strong>{summaryFor(record, structure)}</strong><span className="history-card__hint">Vollständigen Tag öffnen</span></button>)}</div> : <EmptyState text="Noch keine Verlaufsdaten vorhanden." icon={Clock3} />}</section> : null}{page === 'ernaehrung-sport' ? <><section className="module"><SectionHeader title="Ernährung" description="Ernährungswerte deiner gespeicherten Tage werden über zentrale Tracker erfasst." icon={Utensils} /><EmptyState text="Nutze „Heute“, um Ernährung zu erfassen." icon={Leaf} /></section><section className="module"><SectionHeader title="Sport & Aktivität" description="Training und Aktivität bleiben in derselben Tageserfassung und erzeugen keine doppelten Messdaten." icon={Dumbbell} /><EmptyState text="Nutze „Heute“, um Training und Aktivität zu erfassen." icon={Activity} /></section></> : null}{page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content">{settings}</div></>}</section> : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={() => selectHistoryDay(detailRecord)} onDelete={() => deleteHistoryDay(detailRecord)} /> : null}</div>;
 }
 
-function Router() { return <Switch><Route path="/" component={Home} /><Route path="/heute" component={Home} /><Route path="/tracker" component={Home} /><Route path="/verlauf" component={Home} /><Route path="/ernaehrung-sport" component={Home} /><Route path="/einstellungen" component={Home} /><Route component={NotFound} /></Switch>; }
-function App() { return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><Router /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>; }
+function App() { return <QueryClientProvider client={queryClient}><TooltipProvider><WebAppRouter home={Home} /><Toaster /></TooltipProvider></QueryClientProvider>; }
 export default App;
