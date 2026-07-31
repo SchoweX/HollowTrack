@@ -1237,3 +1237,12 @@ a {
     grid-column: 1 / -1;
   }
 }
+
+/* settings-view-separation */
+.settings-root-backup > :not(.backup-panel) {
+  display: none;
+}
+
+.settings-today-content > .backup-panel {
+  display: none;
+}
