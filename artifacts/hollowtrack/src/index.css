@@ -1246,3 +1246,20 @@ a {
 .settings-today-content > .backup-panel {
   display: none;
 }
+
+/* heute-hierarchie-v1 */
+.verwaltungseintrag--kategorie {
+  margin-left: 0;
+}
+
+.verwaltungseintrag--bereich {
+  margin-left: 16px;
+}
+
+.verwaltungseintrag--ansicht {
+  margin-left: 32px;
+}
+
+.verwaltungseintrag--tracker {
+  margin-left: 48px;
+}
