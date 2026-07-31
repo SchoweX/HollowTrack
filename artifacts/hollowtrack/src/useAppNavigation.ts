@@ -1,10 +1,18 @@
-import { useLocation } from 'wouter';
+import { createContext, useContext } from 'react';
 
-export function useAppNavigation() {
-  const [location, setLocation] = useLocation();
+export type AppNavigation = {
+  location: string;
+  navigate: (path: string) => void;
+};
 
-  return {
-    location,
-    navigate: setLocation,
-  };
+export const AppNavigationContext = createContext<AppNavigation | null>(null);
+
+export function useAppNavigation(): AppNavigation {
+  const navigation = useContext(AppNavigationContext);
+
+  if (!navigation) {
+    throw new Error('AppNavigationContext wurde nicht bereitgestellt.');
+  }
+
+  return navigation;
 }

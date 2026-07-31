@@ -1,3 +1,5 @@
+import { localDate, sorted, formatDate, formatDateTime, valueExists, clone } from './utils';
+import { browserAppPlatform } from './appPlatform';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import {
@@ -160,7 +162,11 @@ function Home() {
   useEffect(() => { saveStructureData(structure); setReady(true); }, [structure]);
   useEffect(() => { saveDaysData(days); }, [days]);
   useEffect(() => { saveBackupInfoData(backupInfo); }, [backupInfo]);
-  useEffect(() => { document.title = `HollowTrack – ${navigation.find((item) => item.id === page)?.label || 'Heute'}`; }, [page]);
+  useEffect(() => {
+    browserAppPlatform.setTitle(
+      `HollowTrack – ${navigation.find((item) => item.id === page)?.label || 'Heute'}`,
+    );
+  }, [page]);
   const counts = useMemo(() => ({ categories: structure.kategorien.length, areas: structure.bereiche.length, views: structure.ansichten.length, trackers: structure.tracker.length }), [structure]);
   const activeTrackerCount = structure.tracker.filter((item) => item.aktiv).length;
   const sortedDays = useMemo(() => [...days].sort((a, b) => b.datum.localeCompare(a.datum)), [days]);
@@ -172,7 +178,10 @@ function Home() {
 
 
 
-  const showSuccess = (message: string) => { setSuccess(message); window.setTimeout(() => setSuccess(''), 3500); };
+  const showSuccess = (message: string) => {
+    setSuccess(message);
+    browserAppPlatform.schedule(() => setSuccess(''), 3500);
+  };
   const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setModal({ mode: 'create', type }); };
   const openRename = (type: ElementTyp, id: string, name: string) => { if (type === 'tracker') return; setModalName(name); setParentId(''); setModal({ mode: 'rename', type, id }); };
   const openMoveArea = (id: string) => {
