@@ -1,5 +1,6 @@
 import type { Tagesdatensatz } from './types';
 import { formatDate } from './utils';
+import { browserDialogs } from './platform';
 
 type HistoryActionsOptions = {
   setSuccess: (value: string) => void;
@@ -30,7 +31,7 @@ export function createHistoryActions({
 
   const deleteHistoryDay = (record: Tagesdatensatz) => {
     if (
-      !window.confirm(
+      !browserDialogs.confirm(
         `Möchtest du den Eintrag vom ${formatDate(record.datum)} wirklich endgültig löschen?`,
       )
     )
