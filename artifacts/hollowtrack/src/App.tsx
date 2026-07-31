@@ -1,3 +1,4 @@
+import { usePersistenceSync } from './usePersistenceSync';
 import { localDate, sorted, formatDate, formatDateTime, valueExists, clone } from './utils';
 import { browserAppPlatform } from './appPlatform';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -134,7 +135,7 @@ function Home() {
   const { location, navigate } = useAppNavigation();
   const [structure, setStructure] = useState<Struktur>(loadStructure);
   const [days, setDays] = useState<Tagesdatensatz[]>(loadDays);
-  const [ready, setReady] = useState(false);
+  
   const [selectedDate, setSelectedDate] = useState(localDate);
   const [success, setSuccess] = useState('');
   const [settingsView, setSettingsView] = useState<'root' | 'today'>('root');
@@ -159,9 +160,14 @@ function Home() {
   const page: PageId = pageFromPath(location);
   const go = (next: PageId) => navigate(pathForPage(next));
 
-  useEffect(() => { saveStructureData(structure); setReady(true); }, [structure]);
-  useEffect(() => { saveDaysData(days); }, [days]);
-  useEffect(() => { saveBackupInfoData(backupInfo); }, [backupInfo]);
+  const { ready } = usePersistenceSync({
+    structure,
+    days,
+    backupInfo,
+    saveStructure: saveStructureData,
+    saveDays: saveDaysData,
+    saveBackupInfo: saveBackupInfoData,
+  });
   useEffect(() => {
     browserAppPlatform.setTitle(
       `HollowTrack – ${navigation.find((item) => item.id === page)?.label || 'Heute'}`,
