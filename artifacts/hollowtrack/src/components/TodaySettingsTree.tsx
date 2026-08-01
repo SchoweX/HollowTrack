@@ -22,6 +22,9 @@ type TodaySettingsTreeProps = {
   onToggleCategory: (category: Kategorie) => void;
   onDeleteCategory: (category: Kategorie) => void;
   onEditArea: (area: Bereich) => void;
+  onMoveArea: (area: Bereich) => void;
+  onToggleArea: (area: Bereich) => void;
+  onDeleteArea: (area: Bereich) => void;
   onEditTracker: (tracker: Tracker) => void;
   onCreateCategory: () => void;
   onCreateArea: (category: Kategorie) => void;
@@ -75,12 +78,16 @@ export function TodaySettingsTree({
   onToggleCategory,
   onDeleteCategory,
   onEditArea,
+  onMoveArea,
+  onToggleArea,
+  onDeleteArea,
   onEditTracker,
   onCreateCategory,
   onCreateArea,
   onCreateTracker,
 }: TodaySettingsTreeProps) {
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
+  const [openAreaId, setOpenAreaId] = useState<string | null>(null);
   const categories = byPosition(structure.kategorien);
 
   return (
@@ -212,11 +219,70 @@ export function TodaySettingsTree({
                       type="button"
                       style={iconButtonStyle}
                       aria-label={`${area.name} einstellen`}
-                      onClick={() => onEditArea(area)}
+                      aria-expanded={openAreaId === area.id}
+                      onClick={() =>
+                        setOpenAreaId(openAreaId === area.id ? null : area.id)
+                      }
                     >
                       <Settings size={14} />
                     </button>
                   </div>
+
+                  {openAreaId === area.id ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        padding: '3px 0 8px 38px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        style={actionButtonStyle}
+                        onClick={() => {
+                          onEditArea(area);
+                          setOpenAreaId(null);
+                        }}
+                      >
+                        <Pencil size={13} />
+                        Name
+                      </button>
+
+                      <button
+                        type="button"
+                        style={actionButtonStyle}
+                        onClick={() => {
+                          onMoveArea(area);
+                          setOpenAreaId(null);
+                        }}
+                      >
+                        <FolderOpen size={13} />
+                        Verschieben
+                      </button>
+
+                      <button
+                        type="button"
+                        style={actionButtonStyle}
+                        onClick={() => onToggleArea(area)}
+                      >
+                        {area.aktiv ? <EyeOff size={13} /> : <Eye size={13} />}
+                        {area.aktiv ? 'Deaktivieren' : 'Aktivieren'}
+                      </button>
+
+                      <button
+                        type="button"
+                        style={actionButtonStyle}
+                        onClick={() => {
+                          onDeleteArea(area);
+                          setOpenAreaId(null);
+                        }}
+                      >
+                        <Trash2 size={13} />
+                        Löschen
+                      </button>
+                    </div>
+                  ) : null}
 
                   {trackers.map((tracker) => (
                     <div key={tracker.id} style={rowStyle(32)}>

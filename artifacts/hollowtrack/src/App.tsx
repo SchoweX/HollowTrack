@@ -337,6 +337,15 @@ function Home() {
     setModalName(area.name);
     setModal({ mode: 'rename', type: 'bereich', id: area.id });
   }}
+  onMoveArea={(area) => openMoveArea(area.id)}
+  onToggleArea={(area) => toggleStatus('bereich', area.id)}
+  onDeleteArea={(area) =>
+    setDeleteTarget({
+      type: 'bereich',
+      id: area.id,
+      name: area.name,
+    })
+  }
   onEditTracker={openEditTracker}
   onCreateCategory={() => openCreate('kategorie')}
   onCreateArea={(category) => {
