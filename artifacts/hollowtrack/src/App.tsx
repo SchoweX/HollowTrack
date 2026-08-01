@@ -355,6 +355,63 @@ function Home() {
     setModal({ mode: 'rename', type: 'bereich', id: area.id });
   }}
   onMoveArea={(area) => openMoveArea(area.id)}
+                onSortArea={(category, area, direction) =>
+                  setStructure((current) => {
+                    const next = clone(current);
+                    const targetCategory = next.kategorien.find(
+                      (item) => item.id === category.id,
+                    );
+
+                    if (!targetCategory) return current;
+
+                    const orderedIds = [...targetCategory.bereichIds].sort(
+                      (firstId, secondId) => {
+                        const first = next.bereiche.find(
+                          (item) => item.id === firstId,
+                        );
+                        const second = next.bereiche.find(
+                          (item) => item.id === secondId,
+                        );
+
+                        return (
+                          (first?.position ?? 0) -
+                          (second?.position ?? 0)
+                        );
+                      },
+                    );
+
+                    const currentIndex = orderedIds.indexOf(area.id);
+                    const targetIndex = currentIndex + direction;
+
+                    if (
+                      currentIndex < 0 ||
+                      targetIndex < 0 ||
+                      targetIndex >= orderedIds.length
+                    ) {
+                      return current;
+                    }
+
+                    [
+                      orderedIds[currentIndex],
+                      orderedIds[targetIndex],
+                    ] = [
+                      orderedIds[targetIndex],
+                      orderedIds[currentIndex],
+                    ];
+
+                    targetCategory.bereichIds = orderedIds;
+
+                    orderedIds.forEach((areaId, position) => {
+                      const targetArea = next.bereiche.find(
+                        (item) => item.id === areaId,
+                      );
+
+                      if (targetArea) targetArea.position = position;
+                    });
+
+                    return next;
+                  })
+                }
   onToggleArea={(area) => toggleStatus('bereich', area.id)}
   onDeleteArea={(area) =>
     setDeleteTarget({
@@ -364,6 +421,55 @@ function Home() {
     })
   }
   onEditTracker={openEditTracker}
+                onSortTracker={(area, tracker, direction) =>
+                  setStructure((current) => {
+                    const next = clone(current);
+
+                    const trackerIds = new Set(
+                      area.ansichtIds.flatMap((viewId) => {
+                        const view = next.ansichten.find(
+                          (item) => item.id === viewId,
+                        );
+
+                        return view?.trackerIds ?? [];
+                      }),
+                    );
+
+                    const orderedTrackers = next.tracker
+                      .filter((item) => trackerIds.has(item.id))
+                      .sort(
+                        (first, second) =>
+                          first.position - second.position,
+                      );
+
+                    const currentIndex = orderedTrackers.findIndex(
+                      (item) => item.id === tracker.id,
+                    );
+                    const targetIndex = currentIndex + direction;
+
+                    if (
+                      currentIndex < 0 ||
+                      targetIndex < 0 ||
+                      targetIndex >= orderedTrackers.length
+                    ) {
+                      return current;
+                    }
+
+                    [
+                      orderedTrackers[currentIndex],
+                      orderedTrackers[targetIndex],
+                    ] = [
+                      orderedTrackers[targetIndex],
+                      orderedTrackers[currentIndex],
+                    ];
+
+                    orderedTrackers.forEach((item, position) => {
+                      item.position = position;
+                    });
+
+                    return next;
+                  })
+                }
   onToggleTracker={(tracker) =>
     toggleStatus('tracker', tracker.id)
   }

@@ -23,9 +23,19 @@ type TodaySettingsTreeProps = {
   onDeleteCategory: (category: Kategorie) => void;
   onEditArea: (area: Bereich) => void;
   onMoveArea: (area: Bereich) => void;
+  onSortArea: (
+    category: Kategorie,
+    area: Bereich,
+    direction: -1 | 1,
+  ) => void;
   onToggleArea: (area: Bereich) => void;
   onDeleteArea: (area: Bereich) => void;
   onEditTracker: (tracker: Tracker) => void;
+  onSortTracker: (
+    area: Bereich,
+    tracker: Tracker,
+    direction: -1 | 1,
+  ) => void;
   onToggleTracker: (tracker: Tracker) => void;
   onDeleteTracker: (tracker: Tracker) => void;
   onCreateCategory: () => void;
@@ -81,9 +91,11 @@ export function TodaySettingsTree({
   onDeleteCategory,
   onEditArea,
   onMoveArea,
+  onSortArea,
   onToggleArea,
   onDeleteArea,
   onEditTracker,
+  onSortTracker,
   onToggleTracker,
   onDeleteTracker,
   onCreateCategory,
@@ -210,8 +222,10 @@ export function TodaySettingsTree({
                 }),
               );
 
-              const trackers = structure.tracker.filter((tracker) =>
-                trackerIds.has(tracker.id),
+              const trackers = byPosition(
+                structure.tracker.filter((tracker) =>
+                  trackerIds.has(tracker.id),
+                ),
               );
 
               return (
@@ -265,6 +279,29 @@ export function TodaySettingsTree({
                         <FolderOpen size={13} />
                         Verschieben
                       </button>
+
+          <button
+            type="button"
+            style={actionButtonStyle}
+            disabled={
+              areas.findIndex((item) => item.id === area.id) === 0
+            }
+            onClick={() => onSortArea(category, area, -1)}
+          >
+            ↑ Hoch
+          </button>
+
+          <button
+            type="button"
+            style={actionButtonStyle}
+            disabled={
+              areas.findIndex((item) => item.id === area.id) ===
+              areas.length - 1
+            }
+            onClick={() => onSortArea(category, area, 1)}
+          >
+            ↓ Runter
+          </button>
 
                       <button
                         type="button"
@@ -332,6 +369,32 @@ export function TodaySettingsTree({
                             <Pencil size={13} />
                             Bearbeiten
                           </button>
+
+          <button
+            type="button"
+            style={actionButtonStyle}
+            disabled={
+              trackers.findIndex(
+                (item) => item.id === tracker.id,
+              ) === 0
+            }
+            onClick={() => onSortTracker(area, tracker, -1)}
+          >
+            ↑ Hoch
+          </button>
+
+          <button
+            type="button"
+            style={actionButtonStyle}
+            disabled={
+              trackers.findIndex(
+                (item) => item.id === tracker.id,
+              ) === trackers.length - 1
+            }
+            onClick={() => onSortTracker(area, tracker, 1)}
+          >
+            ↓ Runter
+          </button>
 
                           <button
                             type="button"
