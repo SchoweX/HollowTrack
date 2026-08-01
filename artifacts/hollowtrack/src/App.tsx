@@ -319,6 +319,20 @@ function Home() {
     setModalName(category.name);
     setModal({ mode: 'rename', type: 'kategorie', id: category.id });
   }}
+  onCycleCategoryIcon={(category) => cycleCategoryIcon(category.id)}
+  onMoveCategory={(category, direction) =>
+    moveCategory(category.id, direction)
+  }
+  onToggleCategory={(category) =>
+    toggleStatus('kategorie', category.id)
+  }
+  onDeleteCategory={(category) =>
+    setDeleteTarget({
+      type: 'kategorie',
+      id: category.id,
+      name: category.name,
+    })
+  }
   onEditArea={(area) => {
     setModalName(area.name);
     setModal({ mode: 'rename', type: 'bereich', id: area.id });
