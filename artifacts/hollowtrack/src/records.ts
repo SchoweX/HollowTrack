@@ -7,7 +7,7 @@ import type {
 } from './types';
 import { formatNumber, newId, valueExists } from './utils';
 
-export function emptyRecord(date: string): Tagesdatensatz { const now = new Date().toISOString(); return { id: newId('tag'), datum: date, messwerte: {}, ereignisse: {}, notizen: '', erstelltAm: now, geaendertAm: now }; }
+export function emptyRecord(date: string): Tagesdatensatz { const now = new Date().toISOString(); return { id: newId('tag'), datum: date, messwerte: {}, ereignisse: {}, notizen: '', kategorieNotizen: {}, erstelltAm: now, geaendertAm: now }; }
 export function getAllTrackers(structure: Struktur): Tracker[] { return structure.tracker; }
 export function getViewTrackers(structure: Struktur, view: Ansicht): Tracker[] { return view.trackerIds.map((id) => structure.tracker.find((item) => item.id === id)).filter((item): item is Tracker => Boolean(item)); }
 export function recordValue(record: Tagesdatensatz | undefined, item: Tracker): Formularwert { if (!record) return undefined; return item.datentyp === 'Ereignis' ? record.ereignisse[item.id] : record.messwerte[item.id]; }
@@ -22,5 +22,5 @@ export function summaryFor(record: Tagesdatensatz, structure: Struktur): string 
   return pieces.length ? `${pieces.join(', ')}.` : 'Für diesen Tag sind noch keine Werte eingetragen.';
 }
 export function mergeRecords(existing: Tagesdatensatz, incoming: Tagesdatensatz): Tagesdatensatz {
-  return { ...existing, messwerte: { ...existing.messwerte, ...incoming.messwerte }, ereignisse: { ...existing.ereignisse, ...incoming.ereignisse }, notizen: [existing.notizen, incoming.notizen].filter(Boolean).join('\n\n'), geaendertAm: new Date().toISOString() };
+  return { ...existing, messwerte: { ...existing.messwerte, ...incoming.messwerte }, ereignisse: { ...existing.ereignisse, ...incoming.ereignisse }, notizen: [existing.notizen, incoming.notizen].filter(Boolean).join('\n\n'), kategorieNotizen: { ...(existing.kategorieNotizen ?? {}), ...(incoming.kategorieNotizen ?? {}) }, geaendertAm: new Date().toISOString() };
 }

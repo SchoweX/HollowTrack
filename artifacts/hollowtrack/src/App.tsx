@@ -243,7 +243,24 @@ function Home() {
     setDeleteTarget(null);
   };
 
-  const saveDay = (date: string, values: Record<string, Formularwert>, notes: string) => { const now = new Date().toISOString(); setDays((current) => { const previous = current.find((item) => item.datum === date); const next = previous ? clone(previous) : emptyRecord(date); getAllTrackers(structure).filter((item) => item.aktiv).forEach((item) => { const value = values[item.id]; const target = item.datentyp === 'Ereignis' ? next.ereignisse : next.messwerte; if (valueExists(value)) target[item.id] = ['Zahl', 'Dezimalzahl', 'Bewertung 0 bis 10', 'Dauer'].includes(item.typ) ? Number(value) : value; else delete target[item.id]; }); next.notizen = notes.trim(); next.geaendertAm = now; return previous ? current.map((item) => item.datum === date ? next : item) : [...current, next]; }); showSuccess('Tagesdatensatz erfolgreich gespeichert.'); };
+  const saveDay = (
+    date: string,
+    values: Record<string, Formularwert>,
+    categoryNotes: Record<string, string>,
+  ) => { const now = new Date().toISOString(); setDays((current) => { const previous = current.find((item) => item.datum === date); const next = previous ? clone(previous) : emptyRecord(date); getAllTrackers(structure).filter((item) => item.aktiv).forEach((item) => { const value = values[item.id]; const target = item.datentyp === 'Ereignis' ? next.ereignisse : next.messwerte; if (valueExists(value)) target[item.id] = ['Zahl', 'Dezimalzahl', 'Bewertung 0 bis 10', 'Dauer'].includes(item.typ) ? Number(value) : value; else delete target[item.id]; }); next.kategorieNotizen = Object.fromEntries(
+        Object.entries(categoryNotes)
+          .map(([categoryId, text]) => [categoryId, text.trim()])
+          .filter(([, text]) => Boolean(text)),
+      );
+
+      next.notizen = structure.kategorien
+        .map((category) => {
+          const text = next.kategorieNotizen?.[category.id];
+
+          return text ? `${category.name}:\n${text}` : '';
+        })
+        .filter(Boolean)
+        .join('\n\n'); next.geaendertAm = now; return previous ? current.map((item) => item.datum === date ? next : item) : [...current, next]; }); showSuccess('Tagesdatensatz erfolgreich gespeichert.'); };
   const {
     resetDay,
     selectHistoryDay,

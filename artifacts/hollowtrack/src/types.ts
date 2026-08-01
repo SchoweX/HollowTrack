@@ -92,6 +92,7 @@ export type Tagesdatensatz = {
   messwerte: Record<string, Feldwert>;
   ereignisse: Record<string, Feldwert>;
   notizen: string;
+  kategorieNotizen?: Record<string, string>;
   erstelltAm: string;
   geaendertAm: string;
 };

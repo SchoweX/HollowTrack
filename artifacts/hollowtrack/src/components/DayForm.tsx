@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Check,
   ChevronDown,
@@ -25,7 +25,7 @@ type DayFormProps = {
   onSave: (
     date: string,
     values: Record<string, Formularwert>,
-    notes: string,
+    categoryNotes: Record<string, string>,
   ) => void;
   onReset: () => void;
   success: string;
@@ -42,7 +42,34 @@ export function DayForm({
   const record = days.find((item) => item.datum === date);
 
   const [values, setValues] = useState<Record<string, Formularwert>>({});
-  const [notes, setNotes] = useState('');
+  const [categoryNotes, setCategoryNotes] = useState<
+    Record<string, string>
+  >({});
+  const folderTreeRef = useRef<HTMLDivElement>(null);
+
+  const setAllFoldersOpen = (open: boolean) => {
+    if (open) {
+      folderTreeRef.current
+        ?.querySelectorAll<HTMLDetailsElement>('details')
+        .forEach((folder) => {
+          folder.open = true;
+        });
+
+      return;
+    }
+
+    folderTreeRef.current
+      ?.querySelectorAll<HTMLDetailsElement>('details.today-area')
+      .forEach((area) => {
+        area.open = false;
+      });
+
+    folderTreeRef.current
+      ?.querySelectorAll<HTMLDetailsElement>('details.today-category')
+      .forEach((category) => {
+        category.open = true;
+      });
+  };
 
   const categories = structure.kategorien
     .filter((category) => category.aktiv)
@@ -96,7 +123,12 @@ export function DayForm({
     });
 
     setValues(next);
-    setNotes(record?.notizen ?? '');
+    setCategoryNotes(
+      record?.kategorieNotizen ??
+        (record?.notizen && categories[0]
+          ? { [categories[0].category.id]: record.notizen }
+          : {}),
+    );
   }, [date, record?.id, record?.geaendertAm, structure]);
 
   const resetForm = () => {
@@ -120,10 +152,15 @@ export function DayForm({
       });
 
       setValues(next);
-      setNotes(record.notizen ?? '');
+      setCategoryNotes(
+      record.kategorieNotizen ??
+        (record.notizen && categories[0]
+          ? { [categories[0].category.id]: record.notizen }
+          : {}),
+    );
     } else {
       setValues({});
-      setNotes('');
+      setCategoryNotes({});
     }
 
     onReset();
@@ -131,7 +168,9 @@ export function DayForm({
 
   const hasData =
     Object.values(values).some((value) => valueExists(value)) ||
-    notes.trim().length > 0;
+    Object.values(categoryNotes).some(
+      (text) => text.trim().length > 0,
+    ) > 0;
 
   return (
     <div className="day-form">
@@ -157,7 +196,25 @@ export function DayForm({
         </button>
       </div>
 
-      <div className="today-folder-tree">
+      <div className="today-folder-actions">
+        <button
+          className="button button--quiet"
+          type="button"
+          onClick={() => setAllFoldersOpen(true)}
+        >
+          Alle öffnen
+        </button>
+
+        <button
+          className="button button--quiet"
+          type="button"
+          onClick={() => setAllFoldersOpen(false)}
+        >
+          Alle schließen
+        </button>
+      </div>
+
+      <div className="today-folder-tree" ref={folderTreeRef}>
         {categories.map(({ category, areas }) => (
           <details
             className="form-group today-category"
@@ -204,21 +261,30 @@ export function DayForm({
                   </div>
                 </details>
               ))}
+
+              <label className="category-self-assessment">
+                <span className="category-self-assessment__label">
+                  Selbsteinschätzung
+                </span>
+
+                <textarea
+                  value={categoryNotes[category.id] ?? ''}
+                  onChange={(event) =>
+                    setCategoryNotes((current) => ({
+                      ...current,
+                      [category.id]: event.target.value,
+                    }))
+                  }
+                  rows={6}
+                  placeholder={`Persönlicher Eintrag zu ${category.name}`}
+                />
+              </label>
             </div>
           </details>
         ))}
       </div>
 
-      <label className="field field--notes">
-        <span className="field__label">Notizen</span>
 
-        <textarea
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          rows={4}
-          placeholder="Freie Beobachtungen und besondere Situationen"
-        />
-      </label>
 
       <div className="form-actions">
         <button
@@ -230,7 +296,7 @@ export function DayForm({
             pointerEvents: 'auto',
             opacity: 1,
           }}
-          onClick={() => onSave(date, values, notes)}
+          onClick={() => onSave(date, values, categoryNotes)}
         >
           <Save size={14} />
           {record || hasData ? 'Änderungen speichern' : 'Speichern'}
