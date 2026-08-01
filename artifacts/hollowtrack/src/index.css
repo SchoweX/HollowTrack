@@ -1288,3 +1288,80 @@ a {
 .settings-root-backup .verwaltungsliste {
   display: none;
 }
+
+/* Heute: mehr Luft zwischen Kategorie-, Bereich- und Trackerblöcken */
+.today-folder-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.today-category {
+  margin: 0;
+}
+
+.today-category__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-top: 0.7rem;
+  padding-left: 0.65rem;
+}
+
+.today-area {
+  margin: 0;
+}
+
+.today-area__trackers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-top: 0.7rem;
+  padding-left: 0.8rem;
+}
+
+.today-category > .form-group__summary,
+.today-area > .form-group__summary {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+.today-tracker-field {
+  margin: 0;
+}
+
+/* Notizen als persönlicher Tagebucheintrag hervorheben */
+.field--notes {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid rgba(48, 120, 110, 0.25);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.field--notes .field__label {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.field--notes textarea {
+  min-height: 11rem;
+  resize: vertical;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+/* Heute: auch rechts gleichmäßige Abstände */
+.today-category__content {
+  padding-right: 0.65rem;
+}
+
+.today-area__trackers {
+  padding-right: 0.8rem;
+}
+
+.today-area {
+  margin-right: 0.35rem;
+}
