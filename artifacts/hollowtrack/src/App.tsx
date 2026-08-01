@@ -347,6 +347,16 @@ function Home() {
     })
   }
   onEditTracker={openEditTracker}
+  onToggleTracker={(tracker) =>
+    toggleStatus('tracker', tracker.id)
+  }
+  onDeleteTracker={(tracker) =>
+    setDeleteTarget({
+      type: 'tracker',
+      id: tracker.id,
+      name: tracker.name,
+    })
+  }
   onCreateCategory={() => openCreate('kategorie')}
   onCreateArea={(category) => {
     setModalName('');

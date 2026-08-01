@@ -26,6 +26,8 @@ type TodaySettingsTreeProps = {
   onToggleArea: (area: Bereich) => void;
   onDeleteArea: (area: Bereich) => void;
   onEditTracker: (tracker: Tracker) => void;
+  onToggleTracker: (tracker: Tracker) => void;
+  onDeleteTracker: (tracker: Tracker) => void;
   onCreateCategory: () => void;
   onCreateArea: (category: Kategorie) => void;
   onCreateTracker: (area: Bereich) => void;
@@ -82,12 +84,15 @@ export function TodaySettingsTree({
   onToggleArea,
   onDeleteArea,
   onEditTracker,
+  onToggleTracker,
+  onDeleteTracker,
   onCreateCategory,
   onCreateArea,
   onCreateTracker,
 }: TodaySettingsTreeProps) {
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
   const [openAreaId, setOpenAreaId] = useState<string | null>(null);
+  const [openTrackerId, setOpenTrackerId] = useState<string | null>(null);
   const categories = byPosition(structure.kategorien);
 
   return (
@@ -285,18 +290,75 @@ export function TodaySettingsTree({
                   ) : null}
 
                   {trackers.map((tracker) => (
-                    <div key={tracker.id} style={rowStyle(32)}>
-                      <Zap size={14} />
-                      <span>{tracker.name}</span>
+                    <div key={tracker.id}>
+                      <div style={rowStyle(32)}>
+                        <Zap size={14} />
+                        <span>{tracker.name}</span>
 
-                      <button
-                        type="button"
-                        style={iconButtonStyle}
-                        aria-label={`${tracker.name} einstellen`}
-                        onClick={() => onEditTracker(tracker)}
-                      >
-                        <Settings size={13} />
-                      </button>
+                        <button
+                          type="button"
+                          style={iconButtonStyle}
+                          aria-label={`${tracker.name} einstellen`}
+                          aria-expanded={openTrackerId === tracker.id}
+                          onClick={() =>
+                            setOpenTrackerId(
+                              openTrackerId === tracker.id
+                                ? null
+                                : tracker.id,
+                            )
+                          }
+                        >
+                          <Settings size={13} />
+                        </button>
+                      </div>
+
+                      {openTrackerId === tracker.id ? (
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '6px',
+                            padding: '3px 0 8px 54px',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            style={actionButtonStyle}
+                            onClick={() => {
+                              onEditTracker(tracker);
+                              setOpenTrackerId(null);
+                            }}
+                          >
+                            <Pencil size={13} />
+                            Bearbeiten
+                          </button>
+
+                          <button
+                            type="button"
+                            style={actionButtonStyle}
+                            onClick={() => onToggleTracker(tracker)}
+                          >
+                            {tracker.aktiv ? (
+                              <EyeOff size={13} />
+                            ) : (
+                              <Eye size={13} />
+                            )}
+                            {tracker.aktiv ? 'Deaktivieren' : 'Aktivieren'}
+                          </button>
+
+                          <button
+                            type="button"
+                            style={actionButtonStyle}
+                            onClick={() => {
+                              onDeleteTracker(tracker);
+                              setOpenTrackerId(null);
+                            }}
+                          >
+                            <Trash2 size={13} />
+                            Löschen
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   ))}
 
