@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -26,6 +27,21 @@ type CategoryOption = {
   category: Kategorie;
   trackers: Tracker[];
 };
+
+type ChartRow = {
+  datum: string;
+  beschriftung: string;
+  [trackerId: string]: string | number;
+};
+
+const MAX_SELECTED_TRACKERS = 4;
+
+const lineColors = [
+  '#2f8477',
+  '#7b61a8',
+  '#c4773c',
+  '#4f78a8',
+];
 
 const numericTypes = new Set([
   'Zahl',
@@ -73,6 +89,12 @@ function formatChartDate(date: string) {
   }).format(new Date(`${date}T12:00:00`));
 }
 
+function trackerLabel(tracker: Tracker) {
+  return tracker.einheit
+    ? `${tracker.name} (${tracker.einheit})`
+    : tracker.name;
+}
+
 export function StatisticsView({
   structure,
   days,
@@ -93,20 +115,28 @@ export function StatisticsView({
   const [categoryId, setCategoryId] = useState(
     () => categoryOptions[0]?.category.id ?? '',
   );
-  const [trackerId, setTrackerId] = useState(
-    () => categoryOptions[0]?.trackers[0]?.id ?? '',
+
+  const [selectedTrackerIds, setSelectedTrackerIds] = useState<string[]>(
+    () => {
+      const firstTracker = categoryOptions[0]?.trackers[0];
+      return firstTracker ? [firstTracker.id] : [];
+    },
   );
 
   useEffect(() => {
-    const categoryStillExists = categoryOptions.some(
+    const selectedCategoryExists = categoryOptions.some(
       (item) => item.category.id === categoryId,
     );
 
-    if (!categoryStillExists) {
+    if (!selectedCategoryExists) {
       const nextCategory = categoryOptions[0];
 
       setCategoryId(nextCategory?.category.id ?? '');
-      setTrackerId(nextCategory?.trackers[0]?.id ?? '');
+      setSelectedTrackerIds(
+        nextCategory?.trackers[0]
+          ? [nextCategory.trackers[0].id]
+          : [],
+      );
     }
   }, [categoryId, categoryOptions]);
 
@@ -115,42 +145,71 @@ export function StatisticsView({
   );
 
   useEffect(() => {
-    const trackerStillExists = selectedCategory?.trackers.some(
-      (tracker) => tracker.id === trackerId,
+    const availableIds = new Set(
+      selectedCategory?.trackers.map((tracker) => tracker.id) ?? [],
     );
 
-    if (!trackerStillExists) {
-      setTrackerId(selectedCategory?.trackers[0]?.id ?? '');
+    const stillAvailable = selectedTrackerIds.filter((id) =>
+      availableIds.has(id),
+    );
+
+    if (stillAvailable.length !== selectedTrackerIds.length) {
+      setSelectedTrackerIds(
+        stillAvailable.length > 0
+          ? stillAvailable
+          : selectedCategory?.trackers[0]
+            ? [selectedCategory.trackers[0].id]
+            : [],
+      );
     }
-  }, [selectedCategory, trackerId]);
+  }, [selectedCategory, selectedTrackerIds]);
 
-  const selectedTracker = selectedCategory?.trackers.find(
-    (tracker) => tracker.id === trackerId,
-  );
+  const selectedTrackers =
+    selectedCategory?.trackers.filter((tracker) =>
+      selectedTrackerIds.includes(tracker.id),
+    ) ?? [];
 
-  const chartData = useMemo(() => {
-    if (!selectedTracker) return [];
+  const chartData = useMemo<ChartRow[]>(() => {
+    if (selectedTrackers.length === 0) return [];
 
     return [...days]
       .sort((first, second) =>
         first.datum.localeCompare(second.datum),
       )
       .flatMap((record) => {
-        const value = recordValue(record, selectedTracker);
+        const row: ChartRow = {
+          datum: record.datum,
+          beschriftung: formatChartDate(record.datum),
+        };
 
-        if (typeof value !== 'number' || !Number.isFinite(value)) {
-          return [];
-        }
+        let hasNumericValue = false;
 
-        return [
-          {
-            datum: record.datum,
-            beschriftung: formatChartDate(record.datum),
-            wert: value,
-          },
-        ];
+        selectedTrackers.forEach((tracker) => {
+          const value = recordValue(record, tracker);
+
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            row[tracker.id] = value;
+            hasNumericValue = true;
+          }
+        });
+
+        return hasNumericValue ? [row] : [];
       });
-  }, [days, selectedTracker]);
+  }, [days, selectedTrackers]);
+
+  const toggleTracker = (trackerId: string) => {
+    setSelectedTrackerIds((current) => {
+      if (current.includes(trackerId)) {
+        return current.filter((id) => id !== trackerId);
+      }
+
+      if (current.length >= MAX_SELECTED_TRACKERS) {
+        return current;
+      }
+
+      return [...current, trackerId];
+    });
+  };
 
   if (categoryOptions.length === 0) {
     return (
@@ -166,6 +225,7 @@ export function StatisticsView({
       <div className="statistics-controls">
         <label className="field">
           <span className="field__label">Kategorie</span>
+
           <select
             value={categoryId}
             onChange={(event) => {
@@ -175,7 +235,11 @@ export function StatisticsView({
               );
 
               setCategoryId(nextCategoryId);
-              setTrackerId(nextCategory?.trackers[0]?.id ?? '');
+              setSelectedTrackerIds(
+                nextCategory?.trackers[0]
+                  ? [nextCategory.trackers[0].id]
+                  : [],
+              );
             }}
           >
             {categoryOptions.map(({ category }) => (
@@ -185,41 +249,58 @@ export function StatisticsView({
             ))}
           </select>
         </label>
-
-        <label className="field">
-          <span className="field__label">Tracker</span>
-          <select
-            value={trackerId}
-            onChange={(event) => setTrackerId(event.target.value)}
-          >
-            {selectedCategory?.trackers.map((tracker) => (
-              <option key={tracker.id} value={tracker.id}>
-                {tracker.name}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
+
+      <fieldset className="statistics-tracker-picker">
+        <legend>Tracker auswählen</legend>
+
+        <p>
+          Bis zu {MAX_SELECTED_TRACKERS} Tracker können gleichzeitig
+          verglichen werden.
+        </p>
+
+        <div className="statistics-tracker-options">
+          {selectedCategory?.trackers.map((tracker) => {
+            const checked = selectedTrackerIds.includes(tracker.id);
+            const selectionLimitReached =
+              selectedTrackerIds.length >= MAX_SELECTED_TRACKERS;
+
+            return (
+              <label
+                className="statistics-tracker-option"
+                key={tracker.id}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={!checked && selectionLimitReached}
+                  onChange={() => toggleTracker(tracker.id)}
+                />
+
+                <span>{trackerLabel(tracker)}</span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <section className="statistics-chart-card">
         <div className="statistics-chart-heading">
           <div>
-            <h2>{selectedTracker?.name}</h2>
-            <p>
-              {selectedCategory?.category.name}
-              {selectedTracker?.einheit
-                ? ` · ${selectedTracker.einheit}`
-                : ''}
-            </p>
+            <h2>Trackervergleich</h2>
+            <p>{selectedCategory?.category.name}</p>
           </div>
 
           <span>
-            {chartData.length}{' '}
-            {chartData.length === 1 ? 'Eintrag' : 'Einträge'}
+            {selectedTrackers.length} von {MAX_SELECTED_TRACKERS}
           </span>
         </div>
 
-        {chartData.length > 0 ? (
+        {selectedTrackers.length === 0 ? (
+          <p className="hinweis">
+            Wähle mindestens einen Tracker für das Diagramm aus.
+          </p>
+        ) : chartData.length > 0 ? (
           <div className="statistics-chart">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
@@ -227,39 +308,45 @@ export function StatisticsView({
                 margin={{ top: 12, right: 18, left: -12, bottom: 4 }}
               >
                 <CartesianGrid strokeDasharray="4 4" />
+
                 <XAxis
                   dataKey="beschriftung"
                   minTickGap={24}
                 />
+
                 <YAxis
                   domain={['auto', 'auto']}
                   allowDecimals
                 />
+
                 <Tooltip
                   labelFormatter={(_, items) =>
                     items?.[0]?.payload?.datum ?? ''
                   }
-                  formatter={(value) => [
-                    value,
-                    selectedTracker?.name ?? 'Wert',
-                  ]}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="wert"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  connectNulls={false}
-                />
+
+                <Legend />
+
+                {selectedTrackers.map((tracker, index) => (
+                  <Line
+                    key={tracker.id}
+                    type="monotone"
+                    dataKey={tracker.id}
+                    name={trackerLabel(tracker)}
+                    stroke={lineColors[index % lineColors.length]}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                    connectNulls={false}
+                  />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
           <p className="hinweis">
-            Für diesen Tracker wurden noch keine Zahlenwerte
-            gespeichert.
+            Für die ausgewählten Tracker wurden noch keine
+            Zahlenwerte gespeichert.
           </p>
         )}
       </section>

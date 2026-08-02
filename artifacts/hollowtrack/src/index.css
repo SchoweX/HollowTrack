@@ -1481,3 +1481,111 @@ a {
     height: 17rem;
   }
 }
+
+/* Statistik: Tracker-Mehrfachauswahl */
+.statistics-tracker-picker {
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid rgba(47, 132, 119, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.88);
+}
+
+.statistics-tracker-picker legend {
+  padding: 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.statistics-tracker-picker > p {
+  margin: 0 0 0.85rem;
+  color: var(--muted, #687777);
+}
+
+.statistics-tracker-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.statistics-tracker-option {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(47, 132, 119, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.statistics-tracker-option input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: #2f8477;
+}
+
+.statistics-tracker-option:has(input:checked) {
+  border-color: rgba(47, 132, 119, 0.55);
+  background: rgba(47, 132, 119, 0.1);
+}
+
+.statistics-tracker-option:has(input:disabled) {
+  opacity: 0.48;
+}
+
+@media (max-width: 620px) {
+  .statistics-tracker-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Statistik: Diagramm oben und kompakte Trackerauswahl */
+.statistics-chart-card {
+  order: 1;
+}
+
+.statistics-controls {
+  order: 2;
+}
+
+.statistics-tracker-picker {
+  order: 3;
+  padding: 0.75rem;
+}
+
+.statistics-tracker-picker legend {
+  font-size: 0.95rem;
+}
+
+.statistics-tracker-picker > p {
+  margin-bottom: 0.55rem;
+  font-size: 0.82rem;
+}
+
+.statistics-tracker-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.statistics-tracker-option {
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 9px;
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.statistics-tracker-option input {
+  flex: 0 0 auto;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+@media (max-width: 380px) {
+  .statistics-tracker-options {
+    grid-template-columns: 1fr;
+  }
+}
