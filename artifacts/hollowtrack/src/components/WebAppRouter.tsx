@@ -38,6 +38,7 @@ export function WebAppRouter({ home: Home }: WebAppRouterProps) {
           <Route path="/heute" component={Home} />
           <Route path="/tracker" component={Home} />
           <Route path="/verlauf" component={Home} />
+          <Route path="/statistik" component={Home} />
           <Route path="/ernaehrung-sport" component={Home} />
           <Route path="/einstellungen" component={Home} />
           <Route component={NotFound} />

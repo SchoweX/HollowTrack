@@ -4,6 +4,7 @@ export const pageIds: PageId[] = [
   'heute',
   'tracker',
   'verlauf',
+  'statistik',
   'ernaehrung-sport',
   'einstellungen',
 ];

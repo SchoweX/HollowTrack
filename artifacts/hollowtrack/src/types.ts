@@ -104,7 +104,13 @@ export type ModalState =
   | { mode: 'move'; type: 'bereich'; id: string }
   | { mode: 'edit'; type: 'tracker'; id: string }
   | null;
-export type PageId = 'heute' | 'tracker' | 'verlauf' | 'ernaehrung-sport' | 'einstellungen';
+export type PageId =
+  | 'heute'
+  | 'tracker'
+  | 'verlauf'
+  | 'statistik'
+  | 'ernaehrung-sport'
+  | 'einstellungen';
 
 export type ImportKonflikt = 'behalten' | 'uebernehmen' | 'zusammenfuehren';
 export type ImportVorschau = { tage: Tagesdatensatz[]; struktur?: Struktur; konfliktTage: string[]; neueTage: string[] };
