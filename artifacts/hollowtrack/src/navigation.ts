@@ -5,12 +5,13 @@ export const pageIds: PageId[] = [
   'tracker',
   'verlauf',
   'statistik',
-  'ernaehrung-sport',
+  'sport',
+  'ernaehrung',
   'einstellungen',
 ];
 
 export function pageFromPath(path: string): PageId {
-  const candidate = path.replace(/^\/+/, '');
+  const candidate = path.replace(/^\/+|\/+$/g, '');
 
   return pageIds.includes(candidate as PageId)
     ? (candidate as PageId)

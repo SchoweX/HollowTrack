@@ -1,5 +1,5 @@
 import { categoryIcon } from '../categoryIcons';
-import type { Struktur } from '../types';
+import type { Ansicht, Bereich, Struktur } from '../types';
 import { getViewTrackers } from '../records';
 import { Eye, Folder } from 'lucide-react';
 import { sorted } from '../utils';

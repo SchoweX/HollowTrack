@@ -1589,3 +1589,60 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Sport-Tracker: kompakte Satzdarstellung */
+.sport-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.sport-tracker__name {
+  display: block;
+  margin-bottom: 0.1rem;
+}
+
+.sport-tracker__sets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.sport-set-row {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.sport-set-row__label {
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.sport-set-row__input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 420px) {
+  .sport-set-row {
+    grid-template-columns: 4.8rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+
+
+.sport-tracker__weight {
+  display: block;
+  margin-top: 0.15rem;
+  margin-bottom: 0.35rem;
+  color: var(--muted, #7f8988);
+  font-size: 0.82rem;
+  font-weight: 400;
+}

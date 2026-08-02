@@ -170,7 +170,7 @@ export function DayForm({
     Object.values(values).some((value) => valueExists(value)) ||
     Object.values(categoryNotes).some(
       (text) => text.trim().length > 0,
-    ) > 0;
+    );
 
   return (
     <div className="day-form">

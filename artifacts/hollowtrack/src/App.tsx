@@ -1,6 +1,6 @@
 import { TodaySettingsTree } from './components/TodaySettingsTree';
 import { usePersistenceSync } from './usePersistenceSync';
-import { localDate, sorted, formatDate, formatDateTime, valueExists, clone } from './utils';
+import { localDate, sorted, formatDate, formatDateTime, valueExists, clone, newId } from './utils';
 import { browserAppPlatform } from './appPlatform';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
@@ -13,13 +13,14 @@ import {
   saveBackupInfoData,
 } from './dataStore';
 import { createHistoryActions } from './historyActions';
+import { chatDays } from './chatImportData';
 import { createCategoryActions } from './categoryActions';
 import { pageFromPath, pathForPage } from './navigation';
 import { useAppNavigation } from './useAppNavigation';
 import { runtimeConfig } from './runtimeConfig';
 import { WebAppRouter } from './components/WebAppRouter';
 import { createBackup, serializeBackup, parseBackup, prepareBackupImport } from './backupService';
-import { normalizeStructure, mergeStructure } from './structureService';
+import { normalizeStructure, mergeStructure, makeTracker } from './structureService';
 import {
   toggleStructureStatus,
   cycleStructureCategoryIcon,
@@ -92,10 +93,11 @@ type NavItem = { id: PageId; label: string; icon: LucideIcon };
 
 const navigation: NavItem[] = [
   { id: 'heute', label: 'Heute', icon: CalendarDays },
+  { id: 'sport', label: 'Sport', icon: Dumbbell },
+  { id: 'ernaehrung', label: 'Ernährung', icon: Utensils },
   { id: 'tracker', label: 'Tracker', icon: Activity },
   { id: 'verlauf', label: 'Verlauf', icon: History },
   { id: 'statistik', label: 'Statistik', icon: BarChart3 },
-  { id: 'ernaehrung-sport', label: 'Ernährung & Sport', icon: Dumbbell },
   { id: 'einstellungen', label: 'Einstellungen', icon: Settings },
 ];
 
@@ -126,6 +128,7 @@ import { TreeView } from './components/TreeView';
 import { InputField } from './components/InputField';
 
 import { DayForm } from './components/DayForm';
+import { SportView } from './components/SportView';
 
 import { DayDetail } from './components/DayDetail';
 import { StatisticsView } from './components/StatisticsView';
@@ -161,6 +164,10 @@ function Home() {
   const [parentId, setParentId] = useState('');
   const [inputType, setInputType] = useState<Eingabetyp>('Text');
   const [dataType, setDataType] = useState<TrackerDatentyp>('Messwert');
+  const [erfassungsart, setErfassungsart] =
+    useState<'einzelwert' | 'saetze'>('einzelwert');
+  const [gewichtAktiv, setGewichtAktiv] = useState(false);
+  const [trainingsgewicht, setTrainingsgewicht] = useState('');
   const page: PageId = pageFromPath(location);
   const go = (next: PageId) => navigate(pathForPage(next));
 
@@ -192,7 +199,7 @@ function Home() {
     setSuccess(message);
     browserAppPlatform.schedule(() => setSuccess(''), 3500);
   };
-  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setModal({ mode: 'create', type }); };
+  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setErfassungsart('einzelwert'); setGewichtAktiv(false); setTrainingsgewicht(''); setModal({ mode: 'create', type }); };
   const openRename = (type: ElementTyp, id: string, name: string) => { if (type === 'tracker') return; setModalName(name); setParentId(''); setModal({ mode: 'rename', type, id }); };
   const openMoveArea = (id: string) => {
     const currentCategory = structure.kategorien.find((category) => category.bereichIds.includes(id));
@@ -202,7 +209,7 @@ function Home() {
     setParentId(target.id);
     setModal({ mode: 'move', type: 'bereich', id });
   };
-  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.ansichten.find((view) => view.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setModal({ mode: 'edit', type: 'tracker', id: item.id }); };
+  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.ansichten.find((view) => view.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setErfassungsart(item.erfassungsart ?? 'einzelwert'); setGewichtAktiv(item.trainingsgewicht !== undefined); setTrainingsgewicht(item.trainingsgewicht !== undefined ? String(item.trainingsgewicht) : ''); setModal({ mode: 'edit', type: 'tracker', id: item.id }); };
   const cycleCategoryIcon = (id: string) =>
     setStructure((current) => cycleStructureCategoryIcon(current, id));
   const { moveCategory } = createCategoryActions(setStructure);
@@ -225,11 +232,29 @@ function Home() {
         if (target) target.name = value;
       } else if (modal.mode === 'edit') {
         const target = next.tracker.find((item) => item.id === modal.id);
-        if (target) { target.name = value; target.typ = inputType; target.datentyp = dataType; if (parentId) { const view = next.ansichten.find((item) => item.id === parentId); if (view && !view.trackerIds.includes(target.id)) view.trackerIds.push(target.id); } }
+        if (target) { target.name = value; target.typ = inputType; target.datentyp = dataType; target.erfassungsart = erfassungsart;
+          if (gewichtAktiv && trainingsgewicht.trim()) {
+            target.trainingsgewicht = Number(trainingsgewicht);
+          } else {
+            delete target.trainingsgewicht;
+          } if (parentId) { const view = next.ansichten.find((item) => item.id === parentId); if (view && !view.trackerIds.includes(target.id)) view.trackerIds.push(target.id); } }
       } else if (modal.type === 'kategorie') next.kategorien.push({ id: newId('kategorie'), name: value, icon: 'FolderOpen', aktiv: true, position: next.kategorien.length + 1, bereichIds: [] });
       else if (modal.type === 'bereich') { const category = next.kategorien.find((item) => item.id === parentId); if (category) { const id = newId('bereich'); const viewId = newId('ansicht'); category.bereichIds.push(id); next.bereiche.push({ id, name: value, aktiv: true, position: category.bereichIds.length, ansichtIds: [viewId] }); next.ansichten.push({ id: viewId, name: 'Tagesübersicht', aktiv: true, position: 1, trackerIds: [] }); } }
       else if (modal.type === 'ansicht') { const area = next.bereiche.find((item) => item.id === parentId); if (area) { const id = newId('ansicht'); area.ansichtIds.push(id); next.ansichten.push({ id, name: value, aktiv: true, position: area.ansichtIds.length, trackerIds: [] }); } }
-      else { const view = next.ansichten.find((item) => item.id === parentId); const item = makeTracker(newId('tracker'), value, inputType, dataType, next.tracker.length + 1); next.tracker.push(item); if (view && !view.trackerIds.includes(item.id)) view.trackerIds.push(item.id); }
+      else { const view = next.ansichten.find((item) => item.id === parentId); const item = makeTracker(
+            newId('tracker'),
+            value,
+            inputType,
+            dataType,
+            next.tracker.length + 1,
+            undefined,
+            undefined,
+            erfassungsart,
+          );
+              if (gewichtAktiv && trainingsgewicht.trim()) {
+                item.trainingsgewicht = Number(trainingsgewicht);
+              }
+              next.tracker.push(item); if (view && !view.trackerIds.includes(item.id)) view.trackerIds.push(item.id); }
       return next;
     });
     setModal(null);
@@ -264,6 +289,100 @@ function Home() {
         })
         .filter(Boolean)
         .join('\n\n'); next.geaendertAm = now; return previous ? current.map((item) => item.datum === date ? next : item) : [...current, next]; }); showSuccess('Tagesdatensatz erfolgreich gespeichert.'); };
+  const saveSport = (
+    values: Record<string, string>,
+    level: 1 | 2 | 3,
+  ) => {
+    const now = new Date().toISOString();
+
+    const sportCategory = structure.kategorien.find(
+      (category) =>
+        category.aktiv &&
+        category.name.trim().toLocaleLowerCase('de-DE') === 'sport',
+    );
+
+    const sportTrackerIds = new Set<string>();
+
+    sportCategory?.bereichIds.forEach((areaId) => {
+      const area = structure.bereiche.find(
+        (item) => item.id === areaId && item.aktiv,
+      );
+
+      area?.ansichtIds.forEach((viewId) => {
+        const view = structure.ansichten.find(
+          (item) => item.id === viewId && item.aktiv,
+        );
+
+        view?.trackerIds.forEach((trackerId) => {
+          const tracker = structure.tracker.find(
+            (item) => item.id === trackerId && item.aktiv,
+          );
+
+          if (tracker) {
+            sportTrackerIds.add(tracker.id);
+          }
+        });
+      });
+    });
+
+    setDays((current) => {
+      const previous = current.find(
+        (item) => item.datum === selectedDate,
+      );
+
+      const next = previous
+        ? clone(previous)
+        : emptyRecord(selectedDate);
+
+      sportTrackerIds.forEach((trackerId) => {
+        const tracker = structure.tracker.find(
+          (item) => item.id === trackerId,
+        );
+
+        if (tracker?.erfassungsart === 'saetze') {
+          const setCount = level === 3 ? 3 : 2;
+
+          ([1, 2, 3] as const).forEach((setNumber) => {
+            const setKey = `${trackerId}::satz-${setNumber}`;
+            const value = values[setKey]?.trim();
+
+            if (setNumber <= setCount && value) {
+              next.messwerte[setKey] = Number(value);
+            } else {
+              delete next.messwerte[setKey];
+            }
+          });
+
+          delete next.messwerte[trackerId];
+          return;
+        }
+
+        const value = values[trackerId]?.trim();
+
+        if (value) {
+          next.messwerte[trackerId] = Number(value);
+        } else {
+          delete next.messwerte[trackerId];
+        }
+
+        ([1, 2, 3] as const).forEach((setNumber) => {
+          delete next.messwerte[`${trackerId}::satz-${setNumber}`];
+        });
+      });
+
+      next.ereignisse['sport-trainingsstufe'] = String(level);
+      next.geaendertAm = now;
+
+      return previous
+        ? current.map((item) =>
+            item.id === next.id ? next : item,
+          )
+        : [...current, next];
+    });
+
+    showSuccess('Training erfolgreich gespeichert.');
+  };
+
   const {
     resetDay,
     selectHistoryDay,
@@ -316,7 +435,22 @@ function Home() {
       );
     }
   };
-  const executeImport = () => { if (!importPreview || !browserDialogs.confirm('Möchtest du die angezeigten Daten wirklich importieren?')) return; setStructure((current) => importPreview.struktur ? mergeStructure(current, importPreview.struktur) : current); setDays((current) => { const result = [...current]; importPreview.tage.forEach((incoming) => { const index = result.findIndex((item) => item.datum === incoming.datum); if (index < 0) result.push(incoming); else if (importDecisions[incoming.datum] === 'uebernehmen') result[index] = incoming; else if (importDecisions[incoming.datum] === 'zusammenfuehren') result[index] = mergeRecords(result[index], incoming); }); return result; }); setBackupInfo((current) => ({ ...current, letzterImport: new Date().toISOString() })); setImportPreview(null); setImportMessage('Import erfolgreich abgeschlossen.'); showSuccess('Daten wurden erfolgreich importiert.'); };
+  const executeImport = () => {
+    if (
+      !importPreview ||
+      !importPreview.struktur ||
+      !browserDialogs.confirm(
+        'Möchtest du die angezeigten Daten wirklich importieren?',
+      )
+    ) {
+      return;
+    }
+
+    const importStructure = importPreview.struktur;
+
+    setStructure((current) =>
+      mergeStructure(current, importStructure),
+    ); setDays((current) => { const result = [...current]; importPreview.tage.forEach((incoming) => { const index = result.findIndex((item) => item.datum === incoming.datum); if (index < 0) result.push(incoming); else if (importDecisions[incoming.datum] === 'uebernehmen') result[index] = incoming; else if (importDecisions[incoming.datum] === 'zusammenfuehren') result[index] = mergeRecords(result[index], incoming); }); return result; }); setBackupInfo((current) => ({ ...current, letzterImport: new Date().toISOString() })); setImportPreview(null); setImportMessage('Import erfolgreich abgeschlossen.'); showSuccess('Daten wurden erfolgreich importiert.'); };
   const importChatData = () => { if (backupInfo.chatImportiert) { setImportMessage('Die bisherigen Chatdaten wurden bereits importiert.'); return; } if (!browserDialogs.confirm('Möchtest du die beiden bisherigen Chatdaten jetzt einmalig importieren?')) return; const incoming = chatDays(structure); setDays((current) => [...current, ...incoming.filter((item) => !current.some((existing) => existing.datum === item.datum))]); setBackupInfo((current) => ({ ...current, chatImportiert: true, letzterImport: new Date().toISOString() })); showSuccess('Die beiden Chatdatensätze wurden einmalig importiert.'); };
 
   if (!ready) return <main className="app-main"><section className="module"><div className="skeleton" /></section></main>;
@@ -347,7 +481,53 @@ function Home() {
               days={days}
             />
           </section>
-        ) : page === 'ernaehrung-sport' ? <><section className="module"><SectionHeader title="Ernährung" description="Ernährungswerte deiner gespeicherten Tage werden über zentrale Tracker erfasst." icon={Utensils} /><EmptyState text="Nutze „Heute“, um Ernährung zu erfassen." icon={Leaf} /></section><section className="module"><SectionHeader title="Sport & Aktivität" description="Training und Aktivität bleiben in derselben Tageserfassung und erzeugen keine doppelten Messdaten." icon={Dumbbell} /><EmptyState text="Nutze „Heute“, um Training und Aktivität zu erfassen." icon={Activity} /></section></> : null}{page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content"><TodaySettingsTree
+        ) : page === 'sport' ? (
+  <section className="module">
+    <SectionHeader
+      eyebrow="Training"
+      title="Sport"
+      description="Trainingsart, Trainingsstufe und deine Übungs-Tracker erfassen."
+      icon={Dumbbell}
+    />
+    <SportView
+  structure={structure}
+  date={selectedDate}
+  initialValues={Object.fromEntries(
+    Object.entries(
+      days.find((item) => item.datum === selectedDate)?.messwerte ?? {},
+    ).filter(
+      (entry): entry is [string, string | number] =>
+        typeof entry[1] === 'string' || typeof entry[1] === 'number',
+    ),
+  )}
+  initialLevel={(() => {
+    const savedLevel = days.find(
+      (item) => item.datum === selectedDate,
+    )?.ereignisse['sport-trainingsstufe'];
+
+    return savedLevel === '1' ||
+      savedLevel === '2' ||
+      savedLevel === '3'
+      ? (Number(savedLevel) as 1 | 2 | 3)
+      : 2;
+  })()}
+  onSave={saveSport}
+/>
+  </section>
+) : page === 'ernaehrung' ? (
+  <section className="module">
+    <SectionHeader
+      eyebrow="Ernährung"
+      title="Ernährung"
+      description="Ernährungswerte deiner gespeicherten Tage werden über zentrale Tracker erfasst."
+      icon={Utensils}
+    />
+    <EmptyState
+      text="Nutze „Heute“, um Ernährung zu erfassen."
+      icon={Leaf}
+    />
+  </section>
+) : page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content"><TodaySettingsTree
   structure={structure}
   onEditCategory={(category) => {
     setModalName(category.name);
@@ -515,9 +695,10 @@ function Home() {
     setParentId(viewId);
     setInputType('Text');
     setDataType('Messwert');
+    setErfassungsart('einzelwert');
     setModal({ mode: 'create', type: 'tracker' });
   }}
-/></div></>}</section> : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={() => selectHistoryDay(detailRecord)} onDelete={() => deleteHistoryDay(detailRecord)} /> : null}</div>;
+/></div></>}</section> : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} erfassungsart={erfassungsart} gewichtAktiv={gewichtAktiv} trainingsgewicht={trainingsgewicht} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} setErfassungsart={setErfassungsart} setGewichtAktiv={setGewichtAktiv} setTrainingsgewicht={setTrainingsgewicht} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={() => selectHistoryDay(detailRecord)} onDelete={() => deleteHistoryDay(detailRecord)} /> : null}</div>;
 }
 
 function App() { return <QueryClientProvider client={queryClient}><TooltipProvider><WebAppRouter home={Home} /><Toaster /></TooltipProvider></QueryClientProvider>; }

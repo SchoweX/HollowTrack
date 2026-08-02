@@ -36,6 +36,8 @@ export type Tracker = {
   lueckenassistent: boolean;
   datenquelle: Datenquelle;
   optionen?: string[];
+  erfassungsart?: 'einzelwert' | 'saetze';
+  trainingsgewicht?: number;
 };
 
 export type Kategorie = {
@@ -109,7 +111,7 @@ export type PageId =
   | 'tracker'
   | 'verlauf'
   | 'statistik'
-  | 'ernaehrung-sport'
+  | 'sport' | 'ernaehrung'
   | 'einstellungen';
 
 export type ImportKonflikt = 'behalten' | 'uebernehmen' | 'zusammenfuehren';

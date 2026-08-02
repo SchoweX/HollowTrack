@@ -9,7 +9,6 @@ import type {
   TrackerDatentyp,
 } from './types';
 
-import { clone, newId, slug } from './utils';
 
 const externalDefaults: ExterneAnbindung[] = [
   { id: 'android-health-connect', name: 'Android Health Connect', aktiv: false },
@@ -31,11 +30,21 @@ import {
 } from './utils';
 import { categoryIcon, categoryIconMap } from './categoryIcons';
 
-function makeTracker(id: string, name: string, typ: Eingabetyp, datentyp: TrackerDatentyp, position: number, einheit?: string, optionen?: string[]): Tracker {
+export function makeTracker(
+  id: string,
+  name: string,
+  typ: Eingabetyp,
+  datentyp: TrackerDatentyp,
+  position: number,
+  einheit?: string,
+  optionen?: string[],
+  erfassungsart: 'einzelwert' | 'saetze' = 'einzelwert',
+): Tracker {
   return {
     id: `tracker-${id}`, name, icon: 'Activity', farbe: '#1e6b65', aktiv: true, schnellnotiz: false, position, typ, datentyp,
     einheit, optionen, schnelltracking: false, analyseAktiv: true, lueckenassistent: false, datenquelle: 'manuell',
     benachrichtigung: { aktiv: false },
+    erfassungsart,
   };
 }
 

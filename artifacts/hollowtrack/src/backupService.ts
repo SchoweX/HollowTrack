@@ -31,7 +31,7 @@ export function parseBackup(text: string): unknown {
 }
 
 export type BackupImportPreview = {
-  struktur: unknown;
+  struktur: Struktur | undefined;
   tage: Tagesdatensatz[];
 };
 
@@ -47,7 +47,7 @@ export function prepareBackupImport(data: unknown): BackupImportPreview {
   }
 
   return {
-    struktur: record.struktur ?? null,
+    struktur: record.struktur as Struktur | undefined,
     tage: record.tage as Tagesdatensatz[],
   };
 }
