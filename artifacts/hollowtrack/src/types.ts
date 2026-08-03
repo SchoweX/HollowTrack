@@ -47,6 +47,7 @@ export type Kategorie = {
   aktiv: boolean;
   position: number;
   bereichIds: string[];
+  zweck?: 'heute' | 'sport' | 'ernaehrung';
 };
 export type Bereich = {
   id: string;

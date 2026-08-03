@@ -1646,3 +1646,38 @@ a {
   font-size: 0.82rem;
   font-weight: 400;
 }
+
+/* Einstellungsübersicht: große, untereinander angeordnete Bereiche */
+.settings-overview__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.settings-overview__button {
+  width: 100%;
+  min-height: 48px;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  text-align: left;
+}
+
+.settings-overview__backup {
+  margin-top: 1.25rem;
+}
+
+/* Einstellungsbuttons: Inhalt zentriert und Breite am Text orientiert */
+.settings-overview__actions {
+  align-items: center;
+}
+
+.settings-overview__button {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  justify-content: center;
+  text-align: center;
+  padding-inline: 1.4rem;
+}
+

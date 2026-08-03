@@ -14,7 +14,7 @@ import {
 import { categoryIcon } from '../categoryIcons';
 import type { Bereich, Kategorie, Struktur, Tracker } from '../types';
 
-type TodaySettingsTreeProps = {
+export type TodaySettingsTreeProps = {
   structure: Struktur;
   onEditCategory: (category: Kategorie) => void;
   onCycleCategoryIcon: (category: Kategorie) => void;
@@ -41,6 +41,7 @@ type TodaySettingsTreeProps = {
   onCreateCategory: () => void;
   onCreateArea: (category: Kategorie) => void;
   onCreateTracker: (area: Bereich) => void;
+  categoryPurpose?: 'heute' | 'sport' | 'ernaehrung';
 };
 
 function byPosition<T extends { position: number }>(items: T[]) {
@@ -101,11 +102,18 @@ export function TodaySettingsTree({
   onCreateCategory,
   onCreateArea,
   onCreateTracker,
+  categoryPurpose = 'heute',
 }: TodaySettingsTreeProps) {
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
   const [openAreaId, setOpenAreaId] = useState<string | null>(null);
   const [openTrackerId, setOpenTrackerId] = useState<string | null>(null);
-  const categories = byPosition(structure.kategorien);
+  const categories = byPosition(structure.kategorien).filter((category) => {
+    const purpose =
+      category.zweck ??
+      (category.name.trim().toLowerCase() === 'sport' ? 'sport' : 'heute');
+
+    return purpose === categoryPurpose;
+  });
 
   return (
     <div>
