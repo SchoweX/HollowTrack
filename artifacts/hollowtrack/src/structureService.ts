@@ -143,9 +143,101 @@ export function mergeStructure(current: Struktur, incoming: Struktur): Struktur 
   return result;
 }
 
+
+function organizePurposeCategories(structure: Struktur): Struktur {
+  const result = clone(structure);
+
+  const normalizeName = (value: string) =>
+    value.trim().toLowerCase().replace(/ä/g, 'ae');
+
+  const nutritionAreaIds = result.bereiche
+    .filter((area) => {
+      const name = normalizeName(area.name);
+      return name === 'ernaehrung' || name === 'hunger & saettigung';
+    })
+    .map((area) => area.id);
+
+  if (nutritionAreaIds.length === 0) return result;
+
+  let nutritionCategory = result.kategorien.find(
+    (category) =>
+      category.zweck === 'ernaehrung' ||
+      normalizeName(category.name) === 'ernaehrung',
+  );
+
+  if (!nutritionCategory) {
+    nutritionCategory = {
+      id: 'kategorie-ernaehrung',
+      name: 'Ernährung',
+      icon: 'Utensils',
+      aktiv: true,
+      position: result.kategorien.length + 1,
+      bereichIds: [],
+      zweck: 'ernaehrung',
+    };
+
+    result.kategorien.push(nutritionCategory);
+  } else {
+    nutritionCategory.zweck = 'ernaehrung';
+  }
+
+  result.kategorien.forEach((category) => {
+    category.bereichIds = category.bereichIds.filter(
+      (areaId) => !nutritionAreaIds.includes(areaId),
+    );
+  });
+
+  nutritionCategory.bereichIds = [...nutritionAreaIds];
+
+  nutritionAreaIds.forEach((areaId, index) => {
+    const area = result.bereiche.find((item) => item.id === areaId);
+    if (area) area.position = index + 1;
+  });
+
+  return result;
+}
+
 export function normalizeStructure(saved: unknown): Struktur {
   const base = initialStructure();
-  if (saved && typeof saved === 'object' && Array.isArray((saved as Struktur).kategorien)) return mergeStructure(base, saved as Struktur);
-  if (saved && typeof saved === 'object' && Array.isArray((saved as { oberordner?: unknown }).oberordner)) return mergeStructure(base, migrateLegacy(saved as { oberordner: Array<{ id: string; name: string; aktiv: boolean; position: number; unterordner?: Array<{ id: string; name: string; aktiv: boolean; position: number; tracker?: Tracker[] }> }> }));
-  return base;
+
+  if (
+    saved &&
+    typeof saved === 'object' &&
+    Array.isArray((saved as Struktur).kategorien)
+  ) {
+    return organizePurposeCategories(
+      mergeStructure(base, saved as Struktur),
+    );
+  }
+
+  if (
+    saved &&
+    typeof saved === 'object' &&
+    Array.isArray((saved as { oberordner?: unknown }).oberordner)
+  ) {
+    return organizePurposeCategories(
+      mergeStructure(
+        base,
+        migrateLegacy(
+          saved as {
+            oberordner: Array<{
+              id: string;
+              name: string;
+              aktiv: boolean;
+              position: number;
+              unterordner?: Array<{
+                id: string;
+                name: string;
+                aktiv: boolean;
+                position: number;
+                tracker?: Tracker[];
+              }>;
+            }>;
+          },
+        ),
+      ),
+    );
+  }
+
+  return organizePurposeCategories(base);
 }

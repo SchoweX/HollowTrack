@@ -108,9 +108,15 @@ export function TodaySettingsTree({
   const [openAreaId, setOpenAreaId] = useState<string | null>(null);
   const [openTrackerId, setOpenTrackerId] = useState<string | null>(null);
   const categories = byPosition(structure.kategorien).filter((category) => {
+    const normalizedName = category.name.trim().toLowerCase();
+
     const purpose =
       category.zweck ??
-      (category.name.trim().toLowerCase() === 'sport' ? 'sport' : 'heute');
+      (normalizedName === 'sport'
+        ? 'sport'
+        : normalizedName === 'ernährung' || normalizedName === 'ernaehrung'
+          ? 'ernaehrung'
+          : 'heute');
 
     return purpose === categoryPurpose;
   });

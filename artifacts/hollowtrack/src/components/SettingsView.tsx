@@ -48,10 +48,7 @@ export function SettingsView({
           Zurück zu Einstellungen
         </button>
         <h2>Ernährungseinstellungen</h2>
-        <p>
-          Hier verwalten wir künftig Ernährungsziele, Bereiche und
-          Ernährungstracker.
-        </p>
+        <TodaySettingsTree {...props} categoryPurpose="ernaehrung" />
       </div>
     );
   }
