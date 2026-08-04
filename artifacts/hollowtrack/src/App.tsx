@@ -1,4 +1,4 @@
-import { SettingsView } from './components/SettingsView';
+import { TodaySettingsTree } from './components/TodaySettingsTree';
 import { usePersistenceSync } from './usePersistenceSync';
 import { localDate, sorted, formatDate, formatDateTime, valueExists, clone, newId } from './utils';
 import { browserAppPlatform } from './appPlatform';
@@ -85,6 +85,7 @@ import type {
   Tagesdatensatz,
   Tracker,
   TrackerDatentyp,
+  TrackerTyp,
   Wertebereich,
 } from './types';
 
@@ -145,7 +146,7 @@ function Home() {
   
   const [selectedDate, setSelectedDate] = useState(localDate);
   const [success, setSuccess] = useState('');
-  
+  const [settingsView, setSettingsView] = useState<'root' | 'today'>('root');
   const [modal, setModal] = useState<ModalState>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: ElementTyp; id: string; name: string } | null>(null);
   const {
@@ -164,6 +165,7 @@ function Home() {
   const [parentId, setParentId] = useState('');
   const [inputType, setInputType] = useState<Eingabetyp>('Text');
   const [dataType, setDataType] = useState<TrackerDatentyp>('Messwert');
+  const [trackerTyp, setTrackerTyp] = useState<TrackerTyp>('standard');
   const [erfassungsart, setErfassungsart] =
     useState<'einzelwert' | 'saetze'>('einzelwert');
   const [gewichtAktiv, setGewichtAktiv] = useState(false);
@@ -455,7 +457,17 @@ function Home() {
 
   if (!ready) return <main className="app-main"><section className="module"><div className="skeleton" /></section></main>;
   const today = <section className="module module--intro" id="heute" aria-labelledby="heute-titel"><p className="module__eyebrow">Persönliches Dashboard · {formatDate(localDate())}</p><h1 className="module__title" id="heute-titel">Heute</h1><p className="module__description">Erfasse deinen Tag Schritt für Schritt. Fehlende Werte bleiben leer und werden nicht automatisch ergänzt.</p><div className="intro-grid"><div className="intro-note"><ShieldCheck size={17} /><span>Deine Daten bleiben auf diesem Gerät.</span></div><div className="intro-note"><Activity size={17} /><span>{activeTrackerCount} aktive Tracker bereit.</span></div></div><div className="day-date-picker"><label className="field"><span className="field__label">Datum des Tages</span><input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></label></div><DayForm structure={structure} date={selectedDate} days={days} onSave={saveDay} onReset={resetDay} success={success} /></section>;
-  const settings = <section className="backup-panel"><div className="backup-panel__heading"><div><p className="module__eyebrow">Datensicherung</p><h3 className="backup-panel__title">Lokale Daten verwalten</h3></div><FileJson size={22} /></div><p className="backup-warning">Die Daten werden nur auf diesem Gerät und in diesem Browser gespeichert. Regelmäßige JSON-Exporte werden empfohlen.</p><div className="backup-stats"><span><strong>{days.length}</strong> gespeicherte Tage</span><span>Letzte Sicherung: <strong>{formatDateTime(backupInfo.letzteSicherung)}</strong></span><span>Letzter Import: <strong>{formatDateTime(backupInfo.letzterImport)}</strong></span></div><div className="backup-actions"><button className="button button--primary" type="button" onClick={exportData}><Download size={15} />Daten als JSON exportieren</button><JsonFilePicker onFile={(file) => void prepareImport(file)} /><button className="button" type="button" onClick={importChatData} disabled={backupInfo.chatImportiert}><Import size={15} />{backupInfo.chatImportiert ? 'Chatdaten bereits importiert' : 'Bisherige Chatdaten importieren'}</button></div>{importMessage ? <p className="save-success" role="status"><Check size={14} />{importMessage}</p> : null}{importPreview ? <div className="import-preview"><h3>Importvorschau</h3><p>{importPreview.neueTage.length} neue Datensätze · {importPreview.konfliktTage.length} bereits vorhanden</p>{importPreview.konfliktTage.map((date) => <label className="import-conflict" key={date}><span>{formatDate(date)}</span><select value={importDecisions[date]} onChange={(event) => setImportDecisions((current) => ({ ...current, [date]: event.target.value as ImportKonflikt }))}><option value="behalten">Vorhandenen Eintrag behalten</option><option value="uebernehmen">Importierten Eintrag übernehmen</option><option value="zusammenfuehren">Datensätze zusammenführen</option></select></label>)}<div className="modal__actions"><button className="button button--quiet" type="button" onClick={() => setImportPreview(null)}>Import abbrechen</button><button className="button button--primary" type="button" onClick={executeImport}><Check size={14} />Import durchführen</button></div></div> : null}</section>;
+  const settings = <><SectionHeader eyebrow="Verwaltung" title="Einstellungen" description="Verwalte Kategorien, Bereiche, Ansichten und globale Tracker. Sichere deine lokalen Daten." icon={Settings} /><div className="settings-intro"><CircleHelp size={16} /><span>Tracker werden nur einmal gespeichert und können in mehreren Ansichten erscheinen. Diätmodus und externe Anbindungen sind für spätere Funktionen vorbereitet.</span></div><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => openCreate('kategorie')}><Plus size={15} />Neue Kategorie</button><button className="button" type="button" onClick={() => openCreate('bereich')}><Plus size={15} />Neuer Bereich</button><button className="button" type="button" onClick={() => openCreate('ansicht')}><Plus size={15} />Neue Ansicht</button><button className="button" type="button" onClick={() => openCreate('tracker')}><Plus size={15} />Neuer Tracker</button></div><div className="verwaltungsliste">{[...flattenedItems, ...trackerItems].map((item) => <AdminItem
+  item={item}
+  structure={structure}
+  toggleStatus={toggleStatus}
+  openEditTracker={openEditTracker}
+  openRename={openRename}
+  setDeleteTarget={setDeleteTarget}
+  cycleCategoryIcon={cycleCategoryIcon}
+  moveCategory={moveCategory}
+  openMoveArea={openMoveArea}
+/>)}</div><section className="backup-panel"><div className="backup-panel__heading"><div><p className="module__eyebrow">Datensicherung</p><h3 className="backup-panel__title">Lokale Daten verwalten</h3></div><FileJson size={22} /></div><p className="backup-warning">Die Daten werden nur auf diesem Gerät und in diesem Browser gespeichert. Regelmäßige JSON-Exporte werden empfohlen.</p><div className="backup-stats"><span><strong>{days.length}</strong> gespeicherte Tage</span><span>Letzte Sicherung: <strong>{formatDateTime(backupInfo.letzteSicherung)}</strong></span><span>Letzter Import: <strong>{formatDateTime(backupInfo.letzterImport)}</strong></span></div><div className="backup-actions"><button className="button button--primary" type="button" onClick={exportData}><Download size={15} />Daten als JSON exportieren</button><JsonFilePicker onFile={(file) => void prepareImport(file)} /><button className="button" type="button" onClick={importChatData} disabled={backupInfo.chatImportiert}><Import size={15} />{backupInfo.chatImportiert ? 'Chatdaten bereits importiert' : 'Bisherige Chatdaten importieren'}</button></div>{importMessage ? <p className="save-success" role="status"><Check size={14} />{importMessage}</p> : null}{importPreview ? <div className="import-preview"><h3>Importvorschau</h3><p>{importPreview.neueTage.length} neue Datensätze · {importPreview.konfliktTage.length} bereits vorhanden</p>{importPreview.konfliktTage.map((date) => <label className="import-conflict" key={date}><span>{formatDate(date)}</span><select value={importDecisions[date]} onChange={(event) => setImportDecisions((current) => ({ ...current, [date]: event.target.value as ImportKonflikt }))}><option value="behalten">Vorhandenen Eintrag behalten</option><option value="uebernehmen">Importierten Eintrag übernehmen</option><option value="zusammenfuehren">Datensätze zusammenführen</option></select></label>)}<div className="modal__actions"><button className="button button--quiet" type="button" onClick={() => setImportPreview(null)}>Import abbrechen</button><button className="button button--primary" type="button" onClick={executeImport}><Check size={14} />Import durchführen</button></div></div> : null}</section></>;
 
   return <div className="app-shell"><header className="app-header"><div className="app-header__inner"><a className="app-logo" href={runtimeConfig.basePath} aria-label="HollowTrack – Heute öffnen" onClick={(event) => { event.preventDefault(); go('heute'); }}><span className="app-logo__mark">H</span><span>HollowTrack</span></a><p className="app-header__subtitle">Dein persönlicher Überblick</p><div className="app-header__meta"><span className="status-dot" />Lokal gespeichert</div></div></header><nav className="main-navigation" aria-label="Hauptnavigation"><div className="main-navigation__inner">{navigation.map(({ id, label, icon: Icon }) => <a className={`main-navigation__link ${page === id ? 'main-navigation__link--active' : ''}`} href={`${runtimeConfig.basePath.replace(/\/$/, '')}/${id === 'heute' ? '' : id}`} key={id} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={15} />{label}</a>)}</div></nav><main className="app-main">{page === 'heute' ? today : null}{page === 'tracker' ? <section className="module module--wide"><div className="module__heading"><div><p className="module__eyebrow">Deine Architektur</p><h1 className="module__title">Tracker</h1></div><p className="module__status">{counts.categories} Kategorien · {counts.areas} Bereiche · {counts.views} Ansichten · {counts.trackers} Tracker</p></div><p className="module__description">Kategorien und Bereiche dienen der Übersicht. Tracker sind zentral und können in mehreren Ansichten verwendet werden.</p><div className="tracker-view"><TreeView structure={structure} /></div></section> : null}{page === 'verlauf' ? <section className="module module--wide"><SectionHeader title="Verlauf" description="Gespeicherte Tage, neuester Tag zuerst. Tippe auf einen Tag für die vollständige Ansicht." icon={History} />{sortedDays.length ? <div className="history-list">{sortedDays.map((record) => <button className="history-card" type="button" key={record.id} onClick={() => setDetailRecord(record)}><span className="history-card__date">{formatDate(record.datum)}</span><strong>{summaryFor(record, structure)}</strong><span className="history-card__hint">Vollständigen Tag öffnen</span></button>)}</div> : <EmptyState text="Noch keine Verlaufsdaten vorhanden." icon={Clock3} />}</section> : null}{page === 'statistik' ? (
           <section className="module module--wide">
@@ -517,16 +529,7 @@ function Home() {
       icon={Leaf}
     />
   </section>
-) : page === 'einstellungen' ? (
-  <section className="module module--wide">
-    <SectionHeader
-      eyebrow="Einstellungen"
-      title="Einstellungen"
-      description="Allgemeine Einstellungen und Verwaltung von HollowTrack."
-      icon={Settings}
-    />
-    <SettingsView
-      backupPanel={settings}
+) : page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content"><TodaySettingsTree
   structure={structure}
   onEditCategory={(category) => {
     setModalName(category.name);
@@ -697,9 +700,7 @@ function Home() {
     setErfassungsart('einzelwert');
     setModal({ mode: 'create', type: 'tracker' });
   }}
-/>
-  </section>
-) : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} erfassungsart={erfassungsart} gewichtAktiv={gewichtAktiv} trainingsgewicht={trainingsgewicht} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} setErfassungsart={setErfassungsart} setGewichtAktiv={setGewichtAktiv} setTrainingsgewicht={setTrainingsgewicht} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={() => selectHistoryDay(detailRecord)} onDelete={() => deleteHistoryDay(detailRecord)} /> : null}</div>;
+/></div></>}</section> : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} trackerTyp={trackerTyp} erfassungsart={erfassungsart} gewichtAktiv={gewichtAktiv} trainingsgewicht={trainingsgewicht} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} setTrackerTyp={setTrackerTyp} setErfassungsart={setErfassungsart} setGewichtAktiv={setGewichtAktiv} setTrainingsgewicht={setTrainingsgewicht} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={() => selectHistoryDay(detailRecord)} onDelete={() => deleteHistoryDay(detailRecord)} /> : null}</div>;
 }
 
 function App() { return <QueryClientProvider client={queryClient}><TooltipProvider><WebAppRouter home={Home} /><Toaster /></TooltipProvider></QueryClientProvider>; }

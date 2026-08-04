@@ -10,6 +10,12 @@ export type Eingabetyp =
   | 'Uhrzeit'
   | 'Dauer'
   | 'Mehrfachauswahl';
+export type TrackerTyp =
+  | 'standard'
+  | 'training'
+  | 'erinnerung'
+  | 'schnellzaehler';
+
 export type TrackerDatentyp = 'Messwert' | 'Ereignis' | 'Notiz';
 export type Datenquelle = 'manuell' | 'import' | 'externe-app';
 export type Feldwert = string | number | boolean | string[];
@@ -24,6 +30,7 @@ export type Tracker = {
   aktiv: boolean;
   schnellnotiz: boolean;
   position: number;
+  trackerTyp?: TrackerTyp;
   typ: Eingabetyp;
   datentyp: TrackerDatentyp;
   einheit?: string;
