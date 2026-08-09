@@ -1681,3 +1681,8 @@ a {
   padding-inline: 1.4rem;
 }
 
+
+/* HollowTrack: Abstand zwischen Tracker-Bereich und folgendem Block */
+.today-area__trackers {
+  padding-bottom: 1.25rem;
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dumbbell } from 'lucide-react';
 
 import type { Struktur } from '../types';
@@ -31,6 +31,19 @@ export function SportView({
     ),
   );
   const [selectedAreaId, setSelectedAreaId] = useState('');
+
+  useEffect(() => {
+    setValues(
+      Object.fromEntries(
+        Object.entries(initialValues).map(([trackerId, value]) => [
+          trackerId,
+          String(value),
+        ]),
+      ),
+    );
+    setLevel(initialLevel);
+    setSelectedAreaId('');
+  }, [date, initialValues, initialLevel]);
 
   const sportAreas = useMemo(() => {
     const sportCategory = structure.kategorien.find(
