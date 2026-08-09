@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pencil, Trash2, X } from 'lucide-react';
 
 import type {
@@ -7,7 +8,7 @@ import type {
   Tracker,
 } from '../types';
 import { formatDate, valueExists } from '../utils';
-import { recordValue, summaryFor } from '../records';
+import { recordValue } from '../records';
 
 type DayDetailProps = {
   record: Tagesdatensatz;
@@ -63,11 +64,36 @@ export function DayDetail({
   onEdit,
   onDelete,
 }: DayDetailProps) {
+  const [selectedSection, setSelectedSection] = useState<
+    'heute' | 'sport' | 'ernaehrung' | null
+  >(null);
+
+  const sectionLabel =
+    selectedSection === 'sport'
+      ? 'Sport'
+      : selectedSection === 'ernaehrung'
+        ? 'Ernährung'
+        : selectedSection === 'heute'
+          ? 'Heute'
+          : null;
+
   const activeCategories = [...structure.kategorien]
     .filter((category) => category.aktiv)
     .sort((a, b) => a.position - b.position);
 
-  const categorySections = activeCategories
+  const selectedCategories = activeCategories.filter((category) => {
+    const name = category.name.trim().toLocaleLowerCase('de-DE');
+    const isSport = name === 'sport';
+    const isNutrition = name === 'ernährung' || name === 'ernaehrung';
+
+    if (selectedSection === 'sport') return isSport;
+    if (selectedSection === 'ernaehrung') return isNutrition;
+    if (selectedSection === 'heute') return !isSport && !isNutrition;
+
+    return false;
+  });
+
+  const categorySections = selectedCategories
     .map((category, categoryIndex) => {
       const entries = getCategoryTrackers(structure, category.id)
         .map((tracker) => ({
@@ -112,7 +138,7 @@ export function DayDetail({
             </h2>
 
             <p className="modal__description">
-              {summaryFor(record, structure)}
+              {sectionLabel ?? 'Wähle einen Bereich für diesen Tag.'}
             </p>
           </div>
 
@@ -127,7 +153,33 @@ export function DayDetail({
         </div>
 
         <div className="detail-category-list">
-          {categorySections.length > 0 ? (
+          {selectedSection === null ? (
+            <div className="detail-section-picker">
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={() => setSelectedSection('heute')}
+              >
+                Heute
+              </button>
+
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={() => setSelectedSection('sport')}
+              >
+                Sport
+              </button>
+
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={() => setSelectedSection('ernaehrung')}
+              >
+                Ernährung
+              </button>
+            </div>
+          ) : categorySections.length > 0 ? (
             categorySections.map(({ category, entries, assessment }) => (
               <section
                 className="detail-category"
@@ -148,17 +200,14 @@ export function DayDetail({
 
                         <strong>
                           {formatTrackerValue(value)}
-                          {tracker.einheit
-                            ? ` ${tracker.einheit}`
-                            : ''}
+                          {tracker.einheit ? ` ${tracker.einheit}` : ''}
                         </strong>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <p className="hinweis">
-                    Für diese Kategorie wurden keine Trackerwerte
-                    gespeichert.
+                    Für diese Kategorie wurden keine Trackerwerte gespeichert.
                   </p>
                 )}
 
@@ -176,12 +225,22 @@ export function DayDetail({
             ))
           ) : (
             <p className="hinweis">
-              Für diesen Tag sind keine Einträge gespeichert.
+              Für diesen Bereich sind an diesem Tag keine Einträge gespeichert.
             </p>
           )}
         </div>
 
-        <div className="modal__actions">
+        <div className="modal__actions detail-actions">
+          {selectedSection !== null ? (
+            <button
+              className="button button--quiet"
+              type="button"
+              onClick={() => setSelectedSection(null)}
+            >
+              Zurück
+            </button>
+          ) : null}
+
           <button
             className="button button--quiet"
             type="button"
@@ -190,23 +249,27 @@ export function DayDetail({
             Schließen
           </button>
 
-          <button
-            className="button button--danger"
-            type="button"
-            onClick={onDelete}
-          >
-            <Trash2 size={14} />
-            Eintrag löschen
-          </button>
+          {selectedSection !== null ? (
+            <>
+              <button
+                className="button button--danger"
+                type="button"
+                onClick={onDelete}
+              >
+                <Trash2 size={14} />
+                Eintrag löschen
+              </button>
 
-          <button
-            className="button button--primary"
-            type="button"
-            onClick={onEdit}
-          >
-            <Pencil size={14} />
-            Tag bearbeiten
-          </button>
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={onEdit}
+              >
+                <Pencil size={14} />
+                Tag bearbeiten
+              </button>
+            </>
+          ) : null}
         </div>
       </section>
     </div>

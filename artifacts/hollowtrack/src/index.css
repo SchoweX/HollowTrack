@@ -1686,3 +1686,33 @@ a {
 .today-area__trackers {
   padding-bottom: 1.25rem;
 }
+
+
+/* HollowTrack: Verlaufs-Auswahl nach Oberkategorie */
+.detail-section-picker {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.detail-section-picker .button {
+  width: 100%;
+}
+
+
+/* HollowTrack: Verlaufs-Aktionsbuttons */
+.detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.detail-actions .button {
+  width: 100%;
+  min-width: 0;
+}
+
+.detail-actions .button:only-child {
+  grid-column: 1 / -1;
+}
