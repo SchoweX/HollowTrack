@@ -7,6 +7,7 @@ import type {
   Struktur,
   Tracker,
   TrackerDatentyp,
+  TrackerTyp,
 } from './types';
 
 
@@ -39,12 +40,14 @@ export function makeTracker(
   einheit?: string,
   optionen?: string[],
   erfassungsart: 'einzelwert' | 'saetze' = 'einzelwert',
+  trackerTyp: TrackerTyp = 'standard',
 ): Tracker {
   return {
     id: `tracker-${id}`, name, icon: 'Activity', farbe: '#1e6b65', aktiv: true, schnellnotiz: false, position, typ, datentyp,
     einheit, optionen, schnelltracking: false, analyseAktiv: true, lueckenassistent: false, datenquelle: 'manuell',
     benachrichtigung: { aktiv: false },
     erfassungsart,
+    trackerTyp,
   };
 }
 

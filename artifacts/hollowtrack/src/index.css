@@ -1716,3 +1716,11 @@ a {
 .detail-actions .button:only-child {
   grid-column: 1 / -1;
 }
+
+/* HollowTrack: Modals auf kleinen Smartphone-Displays scrollbar halten */
+.modal {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}

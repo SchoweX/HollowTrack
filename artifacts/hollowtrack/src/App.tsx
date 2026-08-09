@@ -201,7 +201,7 @@ function Home() {
     setSuccess(message);
     browserAppPlatform.schedule(() => setSuccess(''), 3500);
   };
-  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setErfassungsart('einzelwert'); setGewichtAktiv(false); setTrainingsgewicht(''); setModal({ mode: 'create', type }); };
+  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setErfassungsart('einzelwert'); setTrackerTyp('standard'); setGewichtAktiv(false); setTrainingsgewicht(''); setModal({ mode: 'create', type }); };
   const openRename = (type: ElementTyp, id: string, name: string) => { if (type === 'tracker') return; setModalName(name); setParentId(''); setModal({ mode: 'rename', type, id }); };
   const openMoveArea = (id: string) => {
     const currentCategory = structure.kategorien.find((category) => category.bereichIds.includes(id));
@@ -211,7 +211,7 @@ function Home() {
     setParentId(target.id);
     setModal({ mode: 'move', type: 'bereich', id });
   };
-  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.ansichten.find((view) => view.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setErfassungsart(item.erfassungsart ?? 'einzelwert'); setGewichtAktiv(item.trainingsgewicht !== undefined); setTrainingsgewicht(item.trainingsgewicht !== undefined ? String(item.trainingsgewicht) : ''); setModal({ mode: 'edit', type: 'tracker', id: item.id }); };
+  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.ansichten.find((view) => view.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setErfassungsart(item.erfassungsart ?? 'einzelwert'); setTrackerTyp(item.trackerTyp ?? (item.erfassungsart === 'saetze' ? 'training' : 'standard')); setGewichtAktiv(item.trainingsgewicht !== undefined); setTrainingsgewicht(item.trainingsgewicht !== undefined ? String(item.trainingsgewicht) : ''); setModal({ mode: 'edit', type: 'tracker', id: item.id }); };
   const cycleCategoryIcon = (id: string) =>
     setStructure((current) => cycleStructureCategoryIcon(current, id));
   const { moveCategory } = createCategoryActions(setStructure);
@@ -234,7 +234,7 @@ function Home() {
         if (target) target.name = value;
       } else if (modal.mode === 'edit') {
         const target = next.tracker.find((item) => item.id === modal.id);
-        if (target) { target.name = value; target.typ = inputType; target.datentyp = dataType; target.erfassungsart = erfassungsart;
+        if (target) { target.name = value; target.typ = inputType; target.datentyp = dataType; target.erfassungsart = erfassungsart; target.trackerTyp = trackerTyp;
           if (gewichtAktiv && trainingsgewicht.trim()) {
             target.trainingsgewicht = Number(trainingsgewicht);
           } else {
@@ -252,6 +252,7 @@ function Home() {
             undefined,
             undefined,
             erfassungsart,
+            trackerTyp,
           );
               if (gewichtAktiv && trainingsgewicht.trim()) {
                 item.trainingsgewicht = Number(trainingsgewicht);
