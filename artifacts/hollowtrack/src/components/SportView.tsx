@@ -3,14 +3,99 @@ import { Dumbbell } from 'lucide-react';
 
 import type { Struktur } from '../types';
 
+const TRAININGSARTEN = [
+  {
+    name: 'Hypertrophie',
+    ziel: 'Muskelaufbau',
+    intensitaet: 'Moderat bis hoch',
+    wiederholungen: 'ca. 6–15',
+    pause: 'ca. 1–3 Minuten',
+    versagen: 'meist 0–3 Wiederholungen im Tank',
+  },
+  {
+    name: 'Maximalkraft',
+    ziel: 'Maximale Kraftentwicklung',
+    intensitaet: 'Sehr hoch',
+    wiederholungen: 'ca. 1–5',
+    pause: 'ca. 2–5 Minuten',
+    versagen: 'meist 1–3 Wiederholungen im Tank',
+  },
+  {
+    name: 'Kraftausdauer',
+    ziel: 'Kraft über längere Belastungen halten',
+    intensitaet: 'Leicht bis moderat',
+    wiederholungen: 'ca. 15–30+',
+    pause: 'ca. 30–90 Sekunden',
+    versagen: 'meist 1–3 Wiederholungen im Tank',
+  },
+  {
+    name: 'Techniktraining',
+    ziel: 'Bewegungsqualität und Technik verbessern',
+    intensitaet: 'Leicht bis moderat',
+    wiederholungen: 'meist 3–8 saubere Wiederholungen',
+    pause: 'ca. 1–3 Minuten',
+    versagen: 'deutlich vor Muskelversagen stoppen',
+  },
+  {
+    name: 'Deload',
+    ziel: 'Erholung bei Erhalt der Bewegungsmuster',
+    intensitaet: 'Deutlich reduziert',
+    wiederholungen: 'individuell, mit reduziertem Volumen',
+    pause: 'komfortabel',
+    versagen: 'weit vom Muskelversagen entfernt',
+  },
+  {
+    name: 'Reha',
+    ziel: 'Kontrollierter Belastungsaufbau',
+    intensitaet: 'Leicht und beschwerdeorientiert',
+    wiederholungen: 'individuell nach Übung',
+    pause: 'ausreichend für saubere Ausführung',
+    versagen: 'kein erzwungenes Muskelversagen',
+  },
+  {
+    name: 'Mobility',
+    ziel: 'Beweglichkeit und kontrollierter Bewegungsumfang',
+    intensitaet: 'Leicht bis moderat',
+    wiederholungen: 'Wiederholungen oder Haltezeiten',
+    pause: 'nach Bedarf',
+    versagen: 'nicht relevant',
+  },
+  {
+    name: 'Ausdauer',
+    ziel: 'Herz-Kreislauf-Leistung und Belastbarkeit',
+    intensitaet: 'Je nach Einheit',
+    wiederholungen: 'Zeit, Strecke oder Intervalle',
+    pause: 'abhängig von der Trainingsform',
+    versagen: 'nicht als primäres Ziel',
+  },
+  {
+    name: 'Zirkeltraining',
+    ziel: 'Kraft und Kondition kombiniert trainieren',
+    intensitaet: 'Moderat bis hoch',
+    wiederholungen: 'ca. 8–20 oder zeitbasiert',
+    pause: 'kurz zwischen Übungen',
+    versagen: 'meist knapp vor Muskelversagen stoppen',
+  },
+  {
+    name: 'HIIT',
+    ziel: 'Hohe konditionelle Belastung in Intervallen',
+    intensitaet: 'Sehr hoch',
+    wiederholungen: 'kurze intensive Intervalle',
+    pause: 'Intervallpausen',
+    versagen: 'Leistungsabfall begrenzt die Einheit',
+  },
+] as const;
+
 type SportViewProps = {
   structure: Struktur;
   date: string;
   initialValues?: Record<string, string | number>;
   initialLevel?: 1 | 2 | 3;
+  initialTrainingsart?: string;
   onSave: (
     values: Record<string, string>,
     level: 1 | 2 | 3,
+  trainingsart: string,
   ) => void;
 };
 
@@ -19,6 +104,7 @@ export function SportView({
   date,
   initialValues = {},
   initialLevel = 2,
+  initialTrainingsart = '',
   onSave,
 }: SportViewProps) {
   const [level, setLevel] = useState<1 | 2 | 3>(initialLevel);
@@ -31,6 +117,7 @@ export function SportView({
     ),
   );
   const [selectedAreaId, setSelectedAreaId] = useState('');
+  const [trainingsart, setTrainingsart] = useState(initialTrainingsart);
 
   useEffect(() => {
     setValues(
@@ -43,7 +130,8 @@ export function SportView({
     );
     setLevel(initialLevel);
     setSelectedAreaId('');
-  }, [date, initialValues, initialLevel]);
+    setTrainingsart(initialTrainingsart);
+  }, [date, initialValues, initialLevel, initialTrainingsart]);
 
   const sportAreas = useMemo(() => {
     const sportCategory = structure.kategorien.find(
@@ -114,7 +202,7 @@ export function SportView({
       </div>
 
           <label className="field sport-area-selector">
-            <span className="field-label">Trainingsart</span>
+            <span className="field-label">Trainingsbereich</span>
             <select
               className="field-input"
               value={selectedSportArea?.area.id ?? ''}
@@ -127,6 +215,37 @@ export function SportView({
               ))}
             </select>
           </label>
+      <label className="field sport-training-type-selector">
+        <span className="field-label">Trainingsart</span>
+        <select
+          className="field-input"
+          value={trainingsart}
+          onChange={(event) => setTrainingsart(event.target.value)}
+        >
+          <option value="">Trainingsart wählen</option>
+          {TRAININGSARTEN.map((item) => (
+            <option key={item.name} value={item.name}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {trainingsart ? (() => {
+        const info = TRAININGSARTEN.find((item) => item.name === trainingsart);
+        return info ? (
+          <div className="sport-training-info">
+            <strong>{info.name}</strong>
+            <div>Ziel: {info.ziel}</div>
+            <div>Intensität: {info.intensitaet}</div>
+            <div>Wiederholungen: {info.wiederholungen}</div>
+            <div>Pause: {info.pause}</div>
+            <div>Muskelversagen: {info.versagen}</div>
+          </div>
+        ) : null;
+      })() : null}
+
+
 
       <div className="sport-level-selector">
         <span className="form-status">Trainingsstufe</span>
@@ -232,7 +351,7 @@ export function SportView({
             <button
               type="button"
               className="button button-primary"
-              onClick={() => onSave(values, level)}
+              onClick={() => onSave(values, level, trainingsart)}
             >
               Training speichern
             </button>

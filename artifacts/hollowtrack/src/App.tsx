@@ -294,6 +294,7 @@ function Home() {
   const saveSport = (
     values: Record<string, string>,
     level: 1 | 2 | 3,
+    trainingsart: string,
   ) => {
     const now = new Date().toISOString();
 
@@ -373,6 +374,12 @@ function Home() {
       });
 
       next.ereignisse['sport-trainingsstufe'] = String(level);
+
+      if (trainingsart) {
+        next.ereignisse['sport-trainingsart'] = trainingsart;
+      } else {
+        delete next.ereignisse['sport-trainingsart'];
+      }
       next.geaendertAm = now;
 
       return previous
@@ -519,6 +526,16 @@ function Home() {
       ? (Number(savedLevel) as 1 | 2 | 3)
       : 2;
   })()}
+  initialTrainingsart={String(
+
+    days.find((item) => item.datum === selectedDate)?.ereignisse?.[
+
+      'sport-trainingsart'
+
+    ] ?? '',
+
+  )}
+
   onSave={saveSport}
 />
   </section>
