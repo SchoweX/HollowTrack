@@ -146,7 +146,7 @@ function Home() {
   
   const [selectedDate, setSelectedDate] = useState(localDate);
   const [success, setSuccess] = useState('');
-  const [settingsView, setSettingsView] = useState<'root' | 'today'>('root');
+  const [settingsView, setSettingsView] = useState<'root' | 'today' | 'sport' | 'ernaehrung'>('root');
   const [modal, setModal] = useState<ModalState>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: ElementTyp; id: string; name: string } | null>(null);
   const {
@@ -535,8 +535,9 @@ function Home() {
       icon={Leaf}
     />
   </section>
-) : page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content"><TodaySettingsTree
-  structure={structure}
+) : page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="settings-overview__actions"><button className="button button--primary settings-overview__button" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button><button className="button settings-overview__button" type="button" onClick={() => setSettingsView('sport')}>Sport-Einstellungen</button><button className="button settings-overview__button" type="button" onClick={() => setSettingsView('ernaehrung')}>Ernährungseinstellungen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content"><TodaySettingsTree
+  categoryPurpose={settingsView === 'today' ? 'heute' : settingsView}
+                  structure={structure}
   onEditCategory={(category) => {
     setModalName(category.name);
     setModal({ mode: 'rename', type: 'kategorie', id: category.id });
