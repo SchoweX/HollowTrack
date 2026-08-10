@@ -169,10 +169,28 @@ export function StatisticsView({
       selectedTrackerIds.includes(tracker.id),
     ) ?? [];
 
+  const [period, setPeriod] = useState<7 | 30 | 90 | 'all'>(30);
+
+  const filteredDays = useMemo(() => {
+    if (period === 'all') return days;
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    const cutoff = new Date(today);
+    cutoff.setDate(today.getDate() - (period - 1));
+    cutoff.setHours(0, 0, 0, 0);
+
+    return days.filter((record) => {
+      const recordDate = new Date(`${record.datum}T12:00:00`);
+      return recordDate >= cutoff && recordDate <= today;
+    });
+  }, [days, period]);
+
   const chartData = useMemo<ChartRow[]>(() => {
     if (selectedTrackers.length === 0) return [];
 
-    return [...days]
+    return [...filteredDays]
       .sort((first, second) =>
         first.datum.localeCompare(second.datum),
       )
@@ -195,7 +213,7 @@ export function StatisticsView({
 
         return hasNumericValue ? [row] : [];
       });
-  }, [days, selectedTrackers]);
+  }, [filteredDays, selectedTrackers]);
 
   const toggleTracker = (trackerId: string) => {
     setSelectedTrackerIds((current) => {
@@ -223,6 +241,33 @@ export function StatisticsView({
   return (
     <div className="statistics-view">
       <div className="statistics-controls">
+        <div className="statistics-period">
+          <span className="field-label">Zeitraum</span>
+
+          <div className="statistics-period__buttons">
+            {([
+              [7, '7 Tage'],
+              [30, '30 Tage'],
+              [90, '90 Tage'],
+              ['all', 'Gesamt'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={
+                  period === value
+                    ? 'button button-primary statistics-period__button'
+                    : 'button statistics-period__button'
+                }
+                aria-pressed={period === value}
+                onClick={() => setPeriod(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label className="field">
           <span className="field__label">Kategorie</span>
 

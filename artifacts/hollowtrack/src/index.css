@@ -1952,3 +1952,23 @@ a {
 .sport-pause-floating__control:active {
   transform: scale(0.94);
 }
+
+
+/* HollowTrack: Statistik-Zeitraum */
+.statistics-period {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.statistics-period__buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.statistics-period__button {
+  min-width: 0;
+  padding: 0.55rem 0.35rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}

@@ -14,7 +14,7 @@ type DayDetailProps = {
   record: Tagesdatensatz;
   structure: Struktur;
   onClose: () => void;
-  onEdit: () => void;
+  onEdit: (section: 'heute' | 'sport' | 'ernaehrung') => void;
   onDelete: () => void;
 };
 
@@ -263,7 +263,11 @@ export function DayDetail({
               <button
                 className="button button--primary"
                 type="button"
-                onClick={onEdit}
+                onClick={() => {
+              if (selectedSection) {
+                onEdit(selectedSection);
+              }
+            }}
               >
                 <Pencil size={14} />
                 Tag bearbeiten
