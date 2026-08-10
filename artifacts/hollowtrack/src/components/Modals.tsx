@@ -70,7 +70,11 @@ export function Modal({
             : modal.type === "ansicht"
               ? "Ansicht anlegen"
               : "Tracker anlegen";
-  const needsParent = isMove || (!isRename && modal.type !== "kategorie");
+  const needsParent =
+    isMove ||
+    (!isRename &&
+      modal.type !== "kategorie" &&
+      modal.type !== "tracker");
   const parentOptions = isMove
     ? categories
         .filter((category) => !category.bereichIds.includes(modal.id))
@@ -160,85 +164,103 @@ export function Modal({
           {isTracker ? (
             <>
               <label className="field">
-                <label className="field">
-                  <span className="field__label">Trackertyp</span>
-                  <select
-                    value={trackerTyp}
-                    onChange={(event) => {
-              const typ = event.target.value as TrackerTyp;
-              setTrackerTyp(typ);
+                <span className="field__label">Trackertyp</span>
+                <select
+                  value={trackerTyp}
+                  onChange={(event) => {
+                    const typ = event.target.value as TrackerTyp;
+                    setTrackerTyp(typ);
 
-              if (typ === "training") {
-                setErfassungsart("saetze");
-              } else {
-                setErfassungsart("einzelwert");
-              }
-            }}
-                  >
-                    <option value="standard">Standard-Tracker</option>
-                    <option value="erinnerung">Erinnerungstracker</option>
-                    <option value="training">Trainingstracker</option>
-                    <option value="schnellzaehler">Schnellzähler</option>
-                  </select>
-                </label>
+                    if (typ === "training") {
+                      setDataType("Messwert");
+                      setInputType("Zahl");
+                      setErfassungsart("saetze");
+                    } else {
+                      setErfassungsart("einzelwert");
+                    }
+                  }}
+                >
+                  <option value="standard">Standard-Tracker</option>
+                  <option value="erinnerung">Erinnerungstracker</option>
+                  <option value="training">Trainingstracker</option>
+                  <option value="schnellzaehler">Schnellzähler</option>
+                </select>
+              </label>
 
-                <span className="field__label">Datentyp</span>
-                <select
-                  value={dataType}
-                  onChange={(event) =>
-                    setDataType(event.target.value as TrackerDatentyp)
-                  }
-                >
-                  <option>Messwert</option>
-                  <option>Ereignis</option>
-                  <option>Notiz</option>
-                </select>
-              </label>
-              <label className="field">
-                <span className="field__label">Eingabetyp</span>
-                <select
-                  value={inputType}
-                  onChange={(event) =>
-                    setInputType(event.target.value as Eingabetyp)
-                  }
-                >
-                  {[
-                    "Zahl",
-                    "Dezimalzahl",
-                    "Text",
-                    "Mehrzeiliger Text",
-                    "Ja/Nein",
-                    "Bewertung 0 bis 10",
-                    "Auswahlliste",
-                    "Datum",
-                    "Uhrzeit",
-                    "Dauer",
-                    "Mehrfachauswahl",
-                  ].map((option) => (
-                    <option key={option}>{option}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span className="field__label">Erfassungsart</span>
-                <select
-                  value={erfassungsart}
-                  onChange={(event) =>
-                    setErfassungsart(
-                      event.target.value as "einzelwert" | "saetze",
-                    )
-                  }
-                >
-                  <option value="einzelwert">Einzelwert</option>
-                  <option value="saetze">Trainingssätze</option>
-                </select>
-              </label>
+              {trackerTyp === "training" ? (
+                <>
+                  <p className="field__hint">
+                    Für Übungen und andere Trainingswerte. Du kannst Werte
+                    entweder als Trainingssätze oder als einzelnen Wert erfassen
+                    und optional ein Trainingsgewicht hinterlegen.
+                  </p>
+
+                  <label className="field">
+                    <span className="field__label">Mit Trainingssätzen?</span>
+                    <select
+                      value={erfassungsart === "saetze" ? "ja" : "nein"}
+                      onChange={(event) =>
+                        setErfassungsart(
+                          event.target.value === "ja"
+                            ? "saetze"
+                            : "einzelwert",
+                        )
+                      }
+                    >
+                      <option value="ja">Ja</option>
+                      <option value="nein">Nein</option>
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label className="field">
+                    <span className="field__label">Datentyp</span>
+                    <select
+                      value={dataType}
+                      onChange={(event) =>
+                        setDataType(event.target.value as TrackerDatentyp)
+                      }
+                    >
+                      <option>Messwert</option>
+                      <option>Ereignis</option>
+                      <option>Notiz</option>
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span className="field__label">Eingabetyp</span>
+                    <select
+                      value={inputType}
+                      onChange={(event) =>
+                        setInputType(event.target.value as Eingabetyp)
+                      }
+                    >
+                      {[
+                        "Zahl",
+                        "Dezimalzahl",
+                        "Text",
+                        "Mehrzeiliger Text",
+                        "Ja/Nein",
+                        "Bewertung 0 bis 10",
+                        "Auswahlliste",
+                        "Datum",
+                        "Uhrzeit",
+                        "Dauer",
+                        "Mehrfachauswahl",
+                      ].map((option) => (
+                        <option key={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              )}
             </>
           ) : null}
           {isTracker && trackerTyp === "training" ? (
             <>
               <label className="field">
-                <span className="field__label">Trainingsgewicht</span>
+                <span className="field__label">Trainingsgewicht erfassen?</span>
                 <select
                   value={gewichtAktiv ? "ja" : "nein"}
                   onChange={(event) => {
@@ -254,23 +276,6 @@ export function Modal({
                   <option value="ja">Ja</option>
                 </select>
               </label>
-
-              {gewichtAktiv ? (
-                <label className="field">
-                  <span className="field__label">Gewicht in kg</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.1"
-                    value={trainingsgewicht}
-                    onChange={(event) =>
-                      setTrainingsgewicht(event.target.value)
-                    }
-                    placeholder="z. B. 20"
-                  />
-                </label>
-              ) : null}
             </>
           ) : null}
           <div className="modal__actions">

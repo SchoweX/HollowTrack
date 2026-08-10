@@ -211,7 +211,11 @@ function Home() {
     setParentId(target.id);
     setModal({ mode: 'move', type: 'bereich', id });
   };
-  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.ansichten.find((view) => view.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setErfassungsart(item.erfassungsart ?? 'einzelwert'); setTrackerTyp(item.trackerTyp ?? (item.erfassungsart === 'saetze' ? 'training' : 'standard')); setGewichtAktiv(item.trainingsgewicht !== undefined); setTrainingsgewicht(item.trainingsgewicht !== undefined ? String(item.trainingsgewicht) : ''); setModal({ mode: 'edit', type: 'tracker', id: item.id }); };
+  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.ansichten.find((view) => view.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setErfassungsart(item.erfassungsart ?? 'einzelwert'); setTrackerTyp(item.trackerTyp ?? (item.erfassungsart === 'saetze' ? 'training' : 'standard')); setGewichtAktiv(
+    item.trainingsgewichtAktiv ??
+      item.trainingsgewicht !== undefined,
+  );
+  setTrainingsgewicht(''); setModal({ mode: 'edit', type: 'tracker', id: item.id }); };
   const cycleCategoryIcon = (id: string) =>
     setStructure((current) => cycleStructureCategoryIcon(current, id));
   const { moveCategory } = createCategoryActions(setStructure);
@@ -235,11 +239,8 @@ function Home() {
       } else if (modal.mode === 'edit') {
         const target = next.tracker.find((item) => item.id === modal.id);
         if (target) { target.name = value; target.typ = inputType; target.datentyp = dataType; target.erfassungsart = erfassungsart; target.trackerTyp = trackerTyp;
-          if (gewichtAktiv && trainingsgewicht.trim()) {
-            target.trainingsgewicht = Number(trainingsgewicht);
-          } else {
-            delete target.trainingsgewicht;
-          } if (parentId) { const view = next.ansichten.find((item) => item.id === parentId); if (view && !view.trackerIds.includes(target.id)) view.trackerIds.push(target.id); } }
+          target.trainingsgewichtAktiv = gewichtAktiv;
+          delete target.trainingsgewicht; if (parentId) { const view = next.ansichten.find((item) => item.id === parentId); if (view && !view.trackerIds.includes(target.id)) view.trackerIds.push(target.id); } }
       } else if (modal.type === 'kategorie') next.kategorien.push({ id: newId('kategorie'), name: value, icon: 'FolderOpen', aktiv: true, position: next.kategorien.length + 1, bereichIds: [] });
       else if (modal.type === 'bereich') { const category = next.kategorien.find((item) => item.id === parentId); if (category) { const id = newId('bereich'); const viewId = newId('ansicht'); category.bereichIds.push(id); next.bereiche.push({ id, name: value, aktiv: true, position: category.bereichIds.length, ansichtIds: [viewId] }); next.ansichten.push({ id: viewId, name: 'Tagesübersicht', aktiv: true, position: 1, trackerIds: [] }); } }
       else if (modal.type === 'ansicht') { const area = next.bereiche.find((item) => item.id === parentId); if (area) { const id = newId('ansicht'); area.ansichtIds.push(id); next.ansichten.push({ id, name: value, aktiv: true, position: area.ansichtIds.length, trackerIds: [] }); } }
@@ -254,9 +255,7 @@ function Home() {
             erfassungsart,
             trackerTyp,
           );
-              if (gewichtAktiv && trainingsgewicht.trim()) {
-                item.trainingsgewicht = Number(trainingsgewicht);
-              }
+              item.trainingsgewichtAktiv = gewichtAktiv;
               next.tracker.push(item); if (view && !view.trackerIds.includes(item.id)) view.trackerIds.push(item.id); }
       return next;
     });
@@ -342,6 +341,51 @@ function Home() {
         const tracker = structure.tracker.find(
           (item) => item.id === trackerId,
         );
+
+        const weightKey = `${trackerId}::gewicht`;
+
+
+        const usesTrainingWeight =
+
+
+          tracker?.trainingsgewichtAktiv === true ||
+
+
+          tracker?.trainingsgewicht !== undefined;
+
+
+
+        if (usesTrainingWeight) {
+
+
+          const weightValue = values[weightKey]?.trim();
+
+
+
+          if (weightValue) {
+
+
+            next.messwerte[weightKey] = Number(weightValue);
+
+
+          } else {
+
+
+            delete next.messwerte[weightKey];
+
+
+          }
+
+
+        } else {
+
+
+          delete next.messwerte[weightKey];
+
+
+        }
+
+
 
         if (tracker?.erfassungsart === 'saetze') {
           const setCount = level === 3 ? 3 : 2;
@@ -508,15 +552,102 @@ function Home() {
     <SportView
   structure={structure}
   date={selectedDate}
-  initialValues={Object.fromEntries(
-    Object.entries(
-      days.find((item) => item.datum === selectedDate)?.messwerte ?? {},
-    ).filter(
-      (entry): entry is [string, string | number] =>
-        typeof entry[1] === 'string' || typeof entry[1] === 'number',
-    ),
-  )}
-  initialLevel={(() => {
+  initialValues={(() => {
+                const currentValues = Object.fromEntries(
+                  Object.entries(
+                    days.find((item) => item.datum === selectedDate)?.messwerte ?? {},
+                  ).filter(
+                    (entry): entry is [string, string | number] =>
+                      typeof entry[1] === 'string' ||
+                      typeof entry[1] === 'number',
+                  ),
+                );
+
+                const previousWeights: Record<string, string | number> = {};
+
+                [...days]
+                  .filter((item) => item.datum < selectedDate)
+                  .sort((first, second) =>
+                    second.datum.localeCompare(first.datum),
+                  )
+                  .forEach((item) => {
+                    Object.entries(item.messwerte ?? {}).forEach(
+                      ([key, value]) => {
+                        if (
+                          key.endsWith('::gewicht') &&
+                          previousWeights[key] === undefined &&
+                          (typeof value === 'string' ||
+                            typeof value === 'number')
+                        ) {
+                          previousWeights[key] = value;
+                        }
+                      },
+                    );
+                  });
+
+                return {
+                  ...previousWeights,
+                  ...currentValues,
+                };
+              })()}
+              previousValues={(() => {
+                const result: Record<string, string | number> = {};
+                const handledTrackerIds = new Set<string>();
+
+                [...days]
+                  .filter((item) => item.datum < selectedDate)
+                  .sort((first, second) =>
+                    second.datum.localeCompare(first.datum),
+                  )
+                  .forEach((item) => {
+                    const messwerte = item.messwerte ?? {};
+                    const keys = Object.keys(messwerte);
+
+                    keys.forEach((key) => {
+                      const match = key.match(
+                        /^(.*)::(?:gewicht|satz-\d+)$/,
+                      );
+
+                      const trackerId = match?.[1];
+
+                      if (!trackerId || handledTrackerIds.has(trackerId)) {
+                        return;
+                      }
+
+                      const hasTrainingValue =
+                        keys.some((candidate) =>
+                          candidate.startsWith(`${trackerId}::satz-`),
+                        ) ||
+                        Object.prototype.hasOwnProperty.call(
+                          messwerte,
+                          trackerId,
+                        );
+
+                      if (!hasTrainingValue) {
+                        return;
+                      }
+
+                      Object.entries(messwerte).forEach(
+                        ([candidate, value]) => {
+                          if (
+                            (candidate === trackerId ||
+                              candidate.startsWith(`${trackerId}::`)) &&
+                            (typeof value === 'string' ||
+                              typeof value === 'number')
+                          ) {
+                            result[candidate] = value;
+                          }
+                        },
+                      );
+
+                      handledTrackerIds.add(trackerId);
+                    });
+                  });
+
+                return result;
+              })()}
+
+                initialLevel={(() => {
     const savedLevel = days.find(
       (item) => item.datum === selectedDate,
     )?.ereignisse['sport-trainingsstufe'];

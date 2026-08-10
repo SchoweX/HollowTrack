@@ -1724,3 +1724,231 @@ a {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+
+/* HollowTrack: Trainingsgewicht kompakt im Sport-Reiter */
+.sport-weight-row {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.sport-weight-row__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+}
+
+.sport-weight-row__input {
+  width: 7rem;
+  min-width: 0;
+}
+
+.sport-weight-row__unit {
+  white-space: nowrap;
+  color: hsl(var(--muted-foreground));
+}
+
+
+/* HollowTrack: Vergleich mit dem letzten Training */
+.sport-previous-value {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.28rem 0.5rem;
+  border-radius: 0.45rem;
+  background: rgba(120, 120, 120, 0.12);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.sport-value--same {
+  background: rgba(234, 179, 8, 0.14);
+  border-color: rgba(202, 138, 4, 0.45);
+}
+
+.sport-value--better {
+  background: rgba(34, 197, 94, 0.13);
+  border-color: rgba(22, 163, 74, 0.45);
+}
+
+.sport-value--worse {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(220, 38, 38, 0.42);
+}
+
+.sport-set-row {
+  column-gap: 0.55rem;
+}
+
+.sport-weight-row__input-wrap {
+  flex-wrap: wrap;
+}
+
+/* HollowTrack: kompakter Trainingsvergleich pro Satz */
+.sport-set-row {
+  display: grid;
+  grid-template-columns: auto 7rem auto;
+  align-items: center;
+  justify-content: start;
+  gap: 0.55rem;
+}
+
+.sport-set-row__input {
+  width: 7rem;
+  min-width: 0;
+}
+
+.sport-set-row .sport-previous-value {
+  margin: 0;
+}
+
+/* HollowTrack: kompakter Trainingsvergleich pro Satz */
+.sport-set-row {
+  display: grid;
+  grid-template-columns: auto 7rem auto;
+  align-items: center;
+  justify-content: start;
+  gap: 0.55rem;
+}
+
+.sport-set-row__input {
+  width: 7rem;
+  min-width: 0;
+}
+
+.sport-set-row .sport-previous-value {
+  margin: 0;
+}
+
+/* HollowTrack: Vergleichswert dezenter darstellen */
+.sport-previous-value {
+  background: rgba(120, 120, 120, 0.07);
+}
+
+/* HollowTrack: Vergleichswert noch dezenter */
+.sport-previous-value {
+  background: rgba(120, 120, 120, 0.035);
+}
+
+
+/* HollowTrack: Pausentimer */
+.sport-pause-panel {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.8rem 0 1rem;
+}
+
+.sport-pause-setting {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.sport-pause-setting__hint {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.78rem;
+}
+
+.sport-pause-selector {
+  max-width: 13rem;
+}
+
+.sport-pause-timer {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: fit-content;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.65rem;
+  background: hsl(var(--background));
+  box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.08);
+}
+
+.sport-pause-timer strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sport-pause-timer--done {
+  color: hsl(var(--muted-foreground));
+}
+
+.sport-set-done {
+  grid-column: 2 / -1;
+  width: fit-content;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+
+/* HollowTrack: schwebender Pausentimer */
+.sport-pause-floating {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 100;
+
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  width: fit-content;
+  padding: 0.65rem 0.9rem;
+
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: hsl(var(--background));
+  color: inherit;
+  box-shadow: 0 0.2rem 0.8rem rgba(0, 0, 0, 0.14);
+
+  font: inherit;
+}
+
+.sport-pause-floating strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sport-pause-floating--running {
+  border-color: hsl(var(--primary));
+}
+
+.sport-pause-floating--done {
+  opacity: 0.85;
+}
+
+
+/* HollowTrack: Pausentimer-Steuerung */
+.sport-pause-floating__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.15rem;
+}
+
+.sport-pause-floating__control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+}
+
+.sport-pause-floating__control:active {
+  transform: scale(0.94);
+}

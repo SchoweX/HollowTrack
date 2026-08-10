@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, Pause, Play, Square } from 'lucide-react';
 
 import type { Struktur } from '../types';
 
@@ -84,12 +84,22 @@ const TRAININGSARTEN = [
     pause: 'Intervallpausen',
     versagen: 'Leistungsabfall begrenzt die Einheit',
   },
-] as const;
+ ] as const;
+
+const AUTOMATISCHE_PAUSEN: Record<string, number> = {
+  Hypertrophie: 120,
+  Maximalkraft: 180,
+  Kraftausdauer: 60,
+  Techniktraining: 120,
+};
+
+const MANUELLE_PAUSEN = [30, 45, 60, 90, 120, 180, 240, 300];
 
 type SportViewProps = {
   structure: Struktur;
   date: string;
   initialValues?: Record<string, string | number>;
+  previousValues?: Record<string, string | number>;
   initialLevel?: 1 | 2 | 3;
   initialTrainingsart?: string;
   onSave: (
@@ -103,6 +113,7 @@ export function SportView({
   structure,
   date,
   initialValues = {},
+  previousValues = {},
   initialLevel = 2,
   initialTrainingsart = '',
   onSave,
@@ -118,6 +129,129 @@ export function SportView({
   );
   const [selectedAreaId, setSelectedAreaId] = useState('');
   const [trainingsart, setTrainingsart] = useState(initialTrainingsart);
+  const [manualPauseSeconds, setManualPauseSeconds] = useState<number | ''>('');
+  const [pauseEndAt, setPauseEndAt] = useState<number | null>(null);
+  const [timerRemaining, setTimerRemaining] = useState(0);
+  const [timerDone, setTimerDone] = useState(false);
+  const [timerPaused, setTimerPaused] = useState(false);
+
+  const automaticPauseSeconds = trainingsart
+    ? AUTOMATISCHE_PAUSEN[trainingsart]
+    : undefined;
+
+  const pauseSeconds =
+    automaticPauseSeconds ??
+    (typeof manualPauseSeconds === 'number'
+      ? manualPauseSeconds
+      : 0);
+
+  const formatPause = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const rest = seconds % 60;
+
+    return `${minutes}:${String(rest).padStart(2, '0')}`;
+  };
+
+  const startPauseTimer = () => {
+    if (!pauseSeconds) return;
+
+    const secondsToRun =
+      timerPaused && timerRemaining > 0
+        ? timerRemaining
+        : pauseSeconds;
+
+    setTimerRemaining(secondsToRun);
+    setTimerDone(false);
+    setTimerPaused(false);
+    setPauseEndAt(Date.now() + secondsToRun * 1000);
+  };
+
+  const pausePauseTimer = () => {
+    if (pauseEndAt === null) return;
+
+    const remaining = Math.max(
+      0,
+      Math.ceil((pauseEndAt - Date.now()) / 1000),
+    );
+
+    setTimerRemaining(remaining);
+    setPauseEndAt(null);
+    setTimerPaused(remaining > 0);
+
+    if (remaining === 0) {
+      setTimerDone(true);
+    }
+  };
+
+  const stopPauseTimer = () => {
+    setPauseEndAt(null);
+    setTimerRemaining(pauseSeconds);
+    setTimerPaused(false);
+    setTimerDone(false);
+  };
+
+  useEffect(() => {
+    if (pauseEndAt === null) return;
+
+    const updateTimer = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((pauseEndAt - Date.now()) / 1000),
+      );
+
+      setTimerRemaining(remaining);
+
+      if (remaining === 0) {
+        setPauseEndAt(null);
+        setTimerPaused(false);
+        setTimerDone(true);
+      }
+    };
+
+    updateTimer();
+
+    const interval = window.setInterval(updateTimer, 250);
+
+    return () => window.clearInterval(interval);
+  }, [pauseEndAt]);
+
+  useEffect(() => {
+    setPauseEndAt(null);
+    setTimerRemaining(0);
+    setTimerDone(false);
+    setTimerPaused(false);
+
+    if (
+      trainingsart &&
+      AUTOMATISCHE_PAUSEN[trainingsart] !== undefined
+    ) {
+      setManualPauseSeconds('');
+    }
+  }, [trainingsart]);
+
+  const comparisonClass = (
+    currentValue: string | undefined,
+    previousValue: string | number | undefined,
+  ) => {
+    if (
+      currentValue === undefined ||
+      currentValue.trim() === '' ||
+      previousValue === undefined
+    ) {
+      return '';
+    }
+
+    const current = Number(currentValue);
+    const previous = Number(previousValue);
+
+    if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+      return '';
+    }
+
+    if (current === previous) return 'sport-value--same';
+    if (current > previous) return 'sport-value--better';
+    return 'sport-value--worse';
+  };
 
   useEffect(() => {
     setValues(
@@ -247,6 +381,110 @@ export function SportView({
 
 
 
+      {trainingsart ? (
+        <div className="sport-pause-panel">
+          {automaticPauseSeconds !== undefined ? (
+            <div className="sport-pause-setting">
+              <span>Pausenzeit</span>
+              <strong>{formatPause(automaticPauseSeconds)}</strong>
+              <span className="sport-pause-setting__hint">
+                automatisch
+              </span>
+            </div>
+          ) : (
+            <label className="field sport-pause-selector">
+              <span className="field-label">Pausenzeit</span>
+              <select
+                className="field-input"
+                value={manualPauseSeconds}
+                onChange={(event) =>
+                  setManualPauseSeconds(
+                    event.target.value
+                      ? Number(event.target.value)
+                      : '',
+                  )
+                }
+              >
+                <option value="">Pausenzeit wählen</option>
+                {MANUELLE_PAUSEN.map((seconds) => (
+                  <option key={seconds} value={seconds}>
+                    {formatPause(seconds)} min
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+
+        </div>
+      ) : null}
+
+      {pauseSeconds > 0 ? (
+        <div
+          className={`sport-pause-floating ${
+            pauseEndAt !== null
+              ? 'sport-pause-floating--running'
+              : timerDone
+                ? 'sport-pause-floating--done'
+                : ''
+          }`}
+        >
+          <span>
+            {timerDone
+              ? 'Pause beendet'
+              : timerPaused
+                ? 'Pausiert'
+                : 'Pause'}
+          </span>
+
+          <strong>
+            {formatPause(
+              pauseEndAt !== null || timerPaused
+                ? timerRemaining
+                : pauseSeconds,
+            )}
+          </strong>
+
+          <div className="sport-pause-floating__controls">
+            <button
+              type="button"
+              className="sport-pause-floating__control"
+              onClick={
+                pauseEndAt !== null
+                  ? pausePauseTimer
+                  : startPauseTimer
+              }
+              aria-label={
+                pauseEndAt !== null
+                  ? 'Pausentimer pausieren'
+                  : 'Pausentimer starten'
+              }
+              title={
+                pauseEndAt !== null
+                  ? 'Pause'
+                  : 'Start'
+              }
+            >
+              {pauseEndAt !== null ? (
+                <Pause size={18} />
+              ) : (
+                <Play size={18} />
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="sport-pause-floating__control"
+              onClick={stopPauseTimer}
+              aria-label="Pausentimer stoppen"
+              title="Stop"
+            >
+              <Square size={17} />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="sport-level-selector">
         <span className="form-status">Trainingsstufe</span>
 
@@ -282,11 +520,35 @@ export function SportView({
                     <span className="field-label sport-tracker__name">
                       {tracker.name}
                     </span>
-                      {tracker.trainingsgewicht !== undefined ? (
-                        <span className="sport-tracker__weight">
-                          Trainingsgewicht: {tracker.trainingsgewicht} kg
-                        </span>
-                      ) : null}
+                      {tracker.trainingsgewichtAktiv === true ||
+              tracker.trainingsgewicht !== undefined ? (
+                <label className="sport-weight-row">
+                  <span className="sport-weight-row__label">
+                    Trainingsgewicht
+                  </span>
+                  <div className="sport-weight-row__input-wrap">
+                    <input
+                      className={`field-input sport-weight-row__input ${comparisonClass(
+                        values[`${tracker.id}::gewicht`],
+                        previousValues[`${tracker.id}::gewicht`],
+                      )}`}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="any"
+                      value={values[`${tracker.id}::gewicht`] ?? ""}
+                      onChange={(event) =>
+                        setValues((current) => ({
+                          ...current,
+                          [`${tracker.id}::gewicht`]: event.target.value,
+                        }))
+                      }
+                      placeholder="kg"
+                    />
+                    <span className="sport-weight-row__unit">kg</span>
+                  </div>
+                </label>
+              ) : null}
 
 
                     {usesSets ? (
@@ -296,13 +558,16 @@ export function SportView({
                           const setKey = `${tracker.id}::satz-${setNumber}`;
 
                           return (
-                            <label key={setKey} className="sport-set-row">
+                            <div key={setKey} className="sport-set-row">
                               <span className="sport-set-row__label">
                                 {setNumber}. Satz:
                               </span>
 
                               <input
-                                className="field-input sport-set-row__input"
+                                className={`field-input sport-set-row__input ${comparisonClass(
+                          values[setKey],
+                          previousValues[setKey],
+                        )}`}
                                 type="number"
                                 inputMode="decimal"
                                 value={values[setKey] ?? ''}
@@ -318,7 +583,14 @@ export function SportView({
                                   }))
                                 }
                               />
-                            </label>
+                      {previousValues[setKey] !== undefined ? (
+                        <span className="sport-previous-value">
+                          letztes Mal: {previousValues[setKey]}
+                        </span>
+                      ) : null}
+                            
+
+                    </div>
                           );
                         })}
                       </div>

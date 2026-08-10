@@ -44,6 +44,7 @@ export type Tracker = {
   datenquelle: Datenquelle;
   optionen?: string[];
   erfassungsart?: 'einzelwert' | 'saetze';
+  trainingsgewichtAktiv?: boolean;
   trainingsgewicht?: number;
 };
 
