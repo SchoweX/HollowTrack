@@ -100,6 +100,7 @@ type SportViewProps = {
   date: string;
   initialValues?: Record<string, string | number>;
   previousValues?: Record<string, string | number>;
+  previousStagnationCounts?: Record<string, number>;
   initialLevel?: 1 | 2 | 3;
   initialTrainingsart?: string;
   onSave: (
@@ -114,6 +115,7 @@ export function SportView({
   date,
   initialValues = {},
   previousValues = {},
+  previousStagnationCounts = {},
   initialLevel = 2,
   initialTrainingsart = '',
   onSave,
@@ -232,6 +234,7 @@ export function SportView({
   const comparisonClass = (
     currentValue: string | undefined,
     previousValue: string | number | undefined,
+    previousStagnationCount = 0,
   ) => {
     if (
       currentValue === undefined ||
@@ -248,7 +251,11 @@ export function SportView({
       return '';
     }
 
-    if (current === previous) return 'sport-value--same';
+    if (current === previous) {
+      return previousStagnationCount >= 3
+        ? 'sport-value--same'
+        : 'sport-value--better';
+    }
     if (current > previous) return 'sport-value--better';
     return 'sport-value--worse';
   };

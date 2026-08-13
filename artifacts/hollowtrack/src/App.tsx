@@ -645,7 +645,43 @@ function Home() {
                 return result;
               })()}
 
-                initialLevel={(() => {
+                previousStagnationCounts={(() => {
+            const histories = new Map<string, number[]>();
+
+            [...days]
+              .filter((item) => item.datum < selectedDate)
+              .sort((first, second) =>
+                second.datum.localeCompare(first.datum),
+              )
+              .forEach((item) => {
+                Object.entries(item.messwerte ?? {}).forEach(([key, value]) => {
+                  if (!/::(?:gewicht|satz-\d+)$/.test(key)) return;
+
+                  const numeric = Number(value);
+                  if (!Number.isFinite(numeric)) return;
+
+                  const history = histories.get(key) ?? [];
+                  history.push(numeric);
+                  histories.set(key, history);
+                });
+              });
+
+            const result: Record<string, number> = {};
+
+            histories.forEach((history, key) => {
+              let stagnationCount = 0;
+
+              for (let index = 1; index < history.length; index += 1) {
+                if (history[index] !== history[index - 1]) break;
+                stagnationCount += 1;
+              }
+
+              result[key] = stagnationCount;
+            });
+
+            return result;
+          })()}
+          initialLevel={(() => {
     const savedLevel = days.find(
       (item) => item.datum === selectedDate,
     )?.ereignisse['sport-trainingsstufe'];
