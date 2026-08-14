@@ -8,6 +8,7 @@ type AdminItemProps = {
   structure: any;
   toggleStatus: (type: any, id: string) => void;
   openEditTracker: (tracker: any) => void;
+  openEditStructureItem: (item: any) => void;
   openRename: (type: any, id: string, name: string) => void;
   setDeleteTarget: (target: any) => void;
   cycleCategoryIcon: (id: string) => void;
@@ -20,6 +21,7 @@ export function AdminItem({
   structure,
   toggleStatus,
   openEditTracker,
+  openEditStructureItem,
   openRename,
   setDeleteTarget,
   cycleCategoryIcon,
@@ -105,31 +107,25 @@ export function AdminItem({
             </button>
           ) : null}
 
-          {item.type === 'tracker' ? (
-            <button
-              className="aktions-button"
-              type="button"
-              onClick={() =>
-                openEditTracker(
-                  structure.tracker.find(
-                    (trackerItem: any) => trackerItem.id === item.id,
-                  )!,
-                )
-              }
-            >
-              <Pencil size={14} />
-              Bearbeiten
-            </button>
-          ) : (
-            <button
-              className="aktions-button"
-              type="button"
-              onClick={() => openRename(item.type, item.id, item.name)}
-            >
-              <Pencil size={14} />
-              Umbenennen
-            </button>
-          )}
+        {item.type !== 'ansicht' ? (
+          <button
+            className="aktions-button"
+            type="button"
+            onClick={() => openEditStructureItem(item)}
+          >
+            <Pencil size={14} />
+            Bearbeiten
+          </button>
+        ) : (
+          <button
+            className="aktions-button"
+            type="button"
+            onClick={() => openRename(item.type, item.id, item.name)}
+          >
+            <Pencil size={14} />
+            Umbenennen
+          </button>
+        )}
 
           <button
             className="aktions-button aktions-button--loeschen"

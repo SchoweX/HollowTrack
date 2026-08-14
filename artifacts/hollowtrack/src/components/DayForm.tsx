@@ -262,23 +262,26 @@ export function DayForm({
                 </details>
               ))}
 
-              <label className="category-self-assessment">
-                <span className="category-self-assessment__label">
-                  Selbsteinschätzung
-                </span>
+              {category.selbsteinschaetzungAktiv ? (
+                <label className="category-self-assessment">
+                  <span className="category-self-assessment__label">
+                    {category.selbsteinschaetzungName?.trim() ||
+                      'Selbsteinschätzung'}
+                  </span>
 
-                <textarea
-                  value={categoryNotes[category.id] ?? ''}
-                  onChange={(event) =>
-                    setCategoryNotes((current) => ({
-                      ...current,
-                      [category.id]: event.target.value,
-                    }))
-                  }
-                  rows={6}
-                  placeholder={`Persönlicher Eintrag zu ${category.name}`}
-                />
-              </label>
+                  <textarea
+                    value={categoryNotes[category.id] ?? ''}
+                    onChange={(event) =>
+                      setCategoryNotes((current) => ({
+                        ...current,
+                        [category.id]: event.target.value,
+                      }))
+                    }
+                    rows={6}
+                    placeholder={`Persönlicher Eintrag zu ${category.name}`}
+                  />
+                </label>
+              ) : null}
             </div>
           </details>
         ))}

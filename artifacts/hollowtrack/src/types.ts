@@ -56,6 +56,8 @@ export type Kategorie = {
   position: number;
   bereichIds: string[];
   zweck?: 'heute' | 'sport' | 'ernaehrung';
+  selbsteinschaetzungAktiv?: boolean;
+  selbsteinschaetzungName?: string;
 };
 export type Bereich = {
   id: string;

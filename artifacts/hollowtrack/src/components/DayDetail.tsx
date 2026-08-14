@@ -211,16 +211,24 @@ export function DayDetail({
                   </p>
                 )}
 
-                {assessment.trim() ? (
-                  <div className="detail-notes">
-                    <strong>Selbsteinschätzung</strong>
-                    <p>{assessment}</p>
-                  </div>
-                ) : (
-                  <p className="hinweis">
-                    Keine Selbsteinschätzung gespeichert.
-                  </p>
-                )}
+                {category.selbsteinschaetzungAktiv ? (
+                  assessment.trim() ? (
+                    <div className="detail-notes">
+                      <strong>
+                        {category.selbsteinschaetzungName?.trim() ||
+                          'Selbsteinschätzung'}
+                      </strong>
+                      <p>{assessment}</p>
+                    </div>
+                  ) : (
+                    <p className="hinweis">
+                      Keine{' '}
+                      {category.selbsteinschaetzungName?.trim() ||
+                        'Selbsteinschätzung'}{' '}
+                      gespeichert.
+                    </p>
+                  )
+                ) : null}
               </section>
             ))
           ) : (

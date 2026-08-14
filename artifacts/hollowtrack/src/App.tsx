@@ -170,6 +170,10 @@ function Home() {
     useState<'einzelwert' | 'saetze'>('einzelwert');
   const [gewichtAktiv, setGewichtAktiv] = useState(false);
   const [trainingsgewicht, setTrainingsgewicht] = useState('');
+  const [selbsteinschaetzungAktiv, setSelbsteinschaetzungAktiv] =
+    useState(false);
+  const [selbsteinschaetzungName, setSelbsteinschaetzungName] =
+    useState('Selbsteinschätzung');
   const page: PageId = pageFromPath(location);
   const go = (next: PageId) => navigate(pathForPage(next));
 
@@ -201,7 +205,10 @@ function Home() {
     setSuccess(message);
     browserAppPlatform.schedule(() => setSuccess(''), 3500);
   };
-  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setErfassungsart('einzelwert'); setTrackerTyp('standard'); setGewichtAktiv(false); setTrainingsgewicht(''); setModal({ mode: 'create', type }); };
+  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setErfassungsart('einzelwert'); setTrackerTyp('standard'); setGewichtAktiv(false); setTrainingsgewicht('');
+    setSelbsteinschaetzungAktiv(false);
+    setSelbsteinschaetzungName('Selbsteinschätzung');
+    setModal({ mode: 'create', type }); };
   const openRename = (type: ElementTyp, id: string, name: string) => { if (type === 'tracker') return; setModalName(name); setParentId(''); setModal({ mode: 'rename', type, id }); };
   const openMoveArea = (id: string) => {
     const currentCategory = structure.kategorien.find((category) => category.bereichIds.includes(id));
@@ -216,6 +223,57 @@ function Home() {
       item.trainingsgewicht !== undefined,
   );
   setTrainingsgewicht(''); setModal({ mode: 'edit', type: 'tracker', id: item.id }); };
+  const openEditStructureItem = (item: any) => {
+    if (item.type === 'tracker') {
+      const tracker = structure.tracker.find(
+        (candidate) => candidate.id === item.id,
+      );
+      if (tracker) openEditTracker(tracker);
+      return;
+    }
+
+    if (item.type === 'kategorie') {
+      const category = structure.kategorien.find(
+        (candidate) => candidate.id === item.id,
+      );
+      if (!category) return;
+
+      setModalName(category.name);
+      setParentId('');
+      setSelbsteinschaetzungAktiv(
+        category.selbsteinschaetzungAktiv ?? false,
+      );
+      setSelbsteinschaetzungName(
+        category.selbsteinschaetzungName ?? 'Selbsteinschätzung',
+      );
+      setModal({
+        mode: 'edit',
+        type: 'kategorie',
+        id: category.id,
+      });
+      return;
+    }
+
+    if (item.type === 'bereich') {
+      const area = structure.bereiche.find(
+        (candidate) => candidate.id === item.id,
+      );
+      if (!area) return;
+
+      const category = structure.kategorien.find((candidate) =>
+        candidate.bereichIds.includes(area.id),
+      );
+
+      setModalName(area.name);
+      setParentId(category?.id ?? '');
+      setModal({
+        mode: 'edit',
+        type: 'bereich',
+        id: area.id,
+      });
+    }
+  };
+
   const cycleCategoryIcon = (id: string) =>
     setStructure((current) => cycleStructureCategoryIcon(current, id));
   const { moveCategory } = createCategoryActions(setStructure);
@@ -237,11 +295,56 @@ function Home() {
         const target = modal.type === 'kategorie' ? next.kategorien.find((item) => item.id === modal.id) : modal.type === 'bereich' ? next.bereiche.find((item) => item.id === modal.id) : next.ansichten.find((item) => item.id === modal.id);
         if (target) target.name = value;
       } else if (modal.mode === 'edit') {
+        if (modal.type === 'kategorie') {
+          const category = next.kategorien.find((item) => item.id === modal.id);
+          if (category) {
+            category.name = value;
+            category.selbsteinschaetzungAktiv =
+              selbsteinschaetzungAktiv;
+            category.selbsteinschaetzungName =
+              selbsteinschaetzungName.trim() || 'Selbsteinschätzung';
+          }
+          return next;
+        }
+
+        if (modal.type === 'bereich') {
+          const area = next.bereiche.find((item) => item.id === modal.id);
+          if (area) {
+            area.name = value;
+
+            const oldCategory = next.kategorien.find((category) =>
+              category.bereichIds.includes(area.id),
+            );
+            const newCategory = next.kategorien.find(
+              (category) => category.id === parentId,
+            );
+
+            if (newCategory && oldCategory?.id !== newCategory.id) {
+              if (oldCategory) {
+                oldCategory.bereichIds = oldCategory.bereichIds.filter(
+                  (areaId) => areaId !== area.id,
+                );
+              }
+
+              if (!newCategory.bereichIds.includes(area.id)) {
+                newCategory.bereichIds.push(area.id);
+              }
+
+              area.position = newCategory.bereichIds.length;
+            }
+          }
+          return next;
+        }
+
         const target = next.tracker.find((item) => item.id === modal.id);
         if (target) { target.name = value; target.typ = inputType; target.datentyp = dataType; target.erfassungsart = erfassungsart; target.trackerTyp = trackerTyp;
           target.trainingsgewichtAktiv = gewichtAktiv;
           delete target.trainingsgewicht; if (parentId) { const view = next.ansichten.find((item) => item.id === parentId); if (view && !view.trackerIds.includes(target.id)) view.trackerIds.push(target.id); } }
-      } else if (modal.type === 'kategorie') next.kategorien.push({ id: newId('kategorie'), name: value, icon: 'FolderOpen', aktiv: true, position: next.kategorien.length + 1, bereichIds: [] });
+      } else if (modal.type === 'kategorie') next.kategorien.push({ id: newId('kategorie'), name: value, icon: 'FolderOpen', aktiv: true, position: next.kategorien.length + 1, bereichIds: [],
+        selbsteinschaetzungAktiv,
+        selbsteinschaetzungName:
+          selbsteinschaetzungName.trim() || 'Selbsteinschätzung'
+      });
       else if (modal.type === 'bereich') { const category = next.kategorien.find((item) => item.id === parentId); if (category) { const id = newId('bereich'); const viewId = newId('ansicht'); category.bereichIds.push(id); next.bereiche.push({ id, name: value, aktiv: true, position: category.bereichIds.length, ansichtIds: [viewId] }); next.ansichten.push({ id: viewId, name: 'Tagesübersicht', aktiv: true, position: 1, trackerIds: [] }); } }
       else if (modal.type === 'ansicht') { const area = next.bereiche.find((item) => item.id === parentId); if (area) { const id = newId('ansicht'); area.ansichtIds.push(id); next.ansichten.push({ id, name: value, aktiv: true, position: area.ansichtIds.length, trackerIds: [] }); } }
       else { const view = next.ansichten.find((item) => item.id === parentId); const item = makeTracker(
@@ -518,6 +621,7 @@ function Home() {
   structure={structure}
   toggleStatus={toggleStatus}
   openEditTracker={openEditTracker}
+  openEditStructureItem={openEditStructureItem}
   openRename={openRename}
   setDeleteTarget={setDeleteTarget}
   cycleCategoryIcon={cycleCategoryIcon}
@@ -721,10 +825,12 @@ function Home() {
 ) : page === 'einstellungen' ? <section className="module module--wide">{settingsView === 'root' ? <><SectionHeader eyebrow="Einstellungen" title="Einstellungen" description="Allgemeine Einstellungen und Verwaltung von HollowTrack." icon={Settings} /><div className="settings-overview__actions"><button className="button button--primary settings-overview__button" type="button" onClick={() => setSettingsView('today')}>Heute einstellen</button><button className="button settings-overview__button" type="button" onClick={() => setSettingsView('sport')}>Sport-Einstellungen</button><button className="button settings-overview__button" type="button" onClick={() => setSettingsView('ernaehrung')}>Ernährungseinstellungen</button></div><div className="settings-root-backup">{settings}</div></> : <><div className="verwaltung-aktionen"><button className="button" type="button" onClick={() => setSettingsView('root')}>← Zurück zu Einstellungen</button></div><div className="settings-today-content"><TodaySettingsTree
   categoryPurpose={settingsView === 'today' ? 'heute' : settingsView}
                   structure={structure}
-  onEditCategory={(category) => {
-    setModalName(category.name);
-    setModal({ mode: 'rename', type: 'kategorie', id: category.id });
-  }}
+  onEditCategory={(category) =>
+              openEditStructureItem({
+                ...category,
+                type: 'kategorie',
+              })
+            }
   onCycleCategoryIcon={(category) => cycleCategoryIcon(category.id)}
   onMoveCategory={(category, direction) =>
     moveCategory(category.id, direction)
@@ -890,7 +996,7 @@ function Home() {
     setErfassungsart('einzelwert');
     setModal({ mode: 'create', type: 'tracker' });
   }}
-/></div></>}</section> : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} trackerTyp={trackerTyp} erfassungsart={erfassungsart} gewichtAktiv={gewichtAktiv} trainingsgewicht={trainingsgewicht} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} setTrackerTyp={setTrackerTyp} setErfassungsart={setErfassungsart} setGewichtAktiv={setGewichtAktiv} setTrainingsgewicht={setTrainingsgewicht} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={(section) => {
+/></div></>}</section> : null}</main><footer className="app-footer"><p>HollowTrack · persönlich, lokal, übersichtlich</p></footer>{modal ? <Modal modal={modal} structure={structure} name={modalName} parentId={parentId} inputType={inputType} dataType={dataType} trackerTyp={trackerTyp} erfassungsart={erfassungsart} gewichtAktiv={gewichtAktiv} trainingsgewicht={trainingsgewicht} selbsteinschaetzungAktiv={selbsteinschaetzungAktiv} selbsteinschaetzungName={selbsteinschaetzungName} setName={setModalName} setParentId={setParentId} setInputType={setInputType} setDataType={setDataType} setTrackerTyp={setTrackerTyp} setErfassungsart={setErfassungsart} setGewichtAktiv={setGewichtAktiv} setTrainingsgewicht={setTrainingsgewicht} setSelbsteinschaetzungAktiv={setSelbsteinschaetzungAktiv} setSelbsteinschaetzungName={setSelbsteinschaetzungName} onClose={() => setModal(null)} onSubmit={submitModal} /> : null}{deleteTarget ? <DeleteModal name={deleteTarget.name} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} /> : null}{detailRecord ? <DayDetail record={detailRecord} structure={structure} onClose={() => setDetailRecord(null)} onEdit={(section) => {
           selectHistoryDay(detailRecord);
           go(section);
         }} onDelete={() => deleteHistoryDay(detailRecord)} /> : null}</div>;

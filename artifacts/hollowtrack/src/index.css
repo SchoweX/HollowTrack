@@ -1305,6 +1305,7 @@ a {
   flex-direction: column;
   gap: 0.85rem;
   padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
   padding-left: 0.65rem;
 }
 

@@ -19,6 +19,8 @@ export function Modal({
   erfassungsart,
   gewichtAktiv,
   trainingsgewicht,
+  selbsteinschaetzungAktiv,
+  selbsteinschaetzungName,
   setName,
   setParentId,
   setInputType,
@@ -27,6 +29,8 @@ export function Modal({
   setErfassungsart,
   setGewichtAktiv,
   setTrainingsgewicht,
+  setSelbsteinschaetzungAktiv,
+  setSelbsteinschaetzungName,
   onClose,
   onSubmit,
 }: {
@@ -40,6 +44,8 @@ export function Modal({
   erfassungsart: "einzelwert" | "saetze";
   gewichtAktiv: boolean;
   trainingsgewicht: string;
+  selbsteinschaetzungAktiv: boolean;
+  selbsteinschaetzungName: string;
   setName: (value: string) => void;
   setParentId: (value: string) => void;
   setInputType: (value: Eingabetyp) => void;
@@ -48,6 +54,8 @@ export function Modal({
   setErfassungsart: (value: "einzelwert" | "saetze") => void;
   setGewichtAktiv: (value: boolean) => void;
   setTrainingsgewicht: (value: string) => void;
+  setSelbsteinschaetzungAktiv: (value: boolean) => void;
+  setSelbsteinschaetzungName: (value: string) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
@@ -62,7 +70,11 @@ export function Modal({
     : isRename
       ? "Element umbenennen"
       : modal.mode === "edit"
-        ? "Tracker bearbeiten"
+        ? modal.type === "kategorie"
+          ? "Kategorie bearbeiten"
+          : modal.type === "bereich"
+            ? "Bereich bearbeiten"
+            : "Tracker bearbeiten"
         : modal.type === "kategorie"
           ? "Kategorie anlegen"
           : modal.type === "bereich"
@@ -138,6 +150,46 @@ export function Modal({
               />
             </label>
           ) : null}
+          {modal.type === "kategorie" &&
+          !isRename &&
+          !isMove ? (
+            <>
+              <label className="field">
+                <span className="field__label">
+                  Selbsteinschätzungs-Notizblock
+                </span>
+                <select
+                  value={selbsteinschaetzungAktiv ? "ja" : "nein"}
+                  onChange={(event) =>
+                    setSelbsteinschaetzungAktiv(
+                      event.target.value === "ja",
+                    )
+                  }
+                >
+                  <option value="nein">Nein</option>
+                  <option value="ja">Ja</option>
+                </select>
+              </label>
+
+              {selbsteinschaetzungAktiv ? (
+                <label className="field">
+                  <span className="field__label">
+                    Name des Selbsteinschätzungsblocks
+                  </span>
+                  <input
+                    value={selbsteinschaetzungName}
+                    onChange={(event) =>
+                      setSelbsteinschaetzungName(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Selbsteinschätzung"
+                  />
+                </label>
+              ) : null}
+            </>
+          ) : null}
+
           {needsParent ? (
             <label className="field">
               <span className="field__label">
