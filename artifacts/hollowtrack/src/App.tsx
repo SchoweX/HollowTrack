@@ -750,42 +750,58 @@ function Home() {
               })()}
 
                 previousStagnationCounts={(() => {
-            const histories = new Map<string, number[]>();
+        const histories = new Map<
+          string,
+          { value: number; weight: number | undefined }[]
+        >();
 
-            [...days]
-              .filter((item) => item.datum < selectedDate)
-              .sort((first, second) =>
-                second.datum.localeCompare(first.datum),
-              )
-              .forEach((item) => {
-                Object.entries(item.messwerte ?? {}).forEach(([key, value]) => {
-                  if (!/::(?:gewicht|satz-\d+)$/.test(key)) return;
+        [...days]
+          .filter((item) => item.datum < selectedDate)
+          .sort((first, second) =>
+            second.datum.localeCompare(first.datum),
+          )
+          .forEach((item) => {
+            const messwerte = item.messwerte ?? {};
 
-                  const numeric = Number(value);
-                  if (!Number.isFinite(numeric)) return;
+            Object.entries(messwerte).forEach(([key, value]) => {
+              if (!/::satz-\d+$/.test(key)) return;
 
-                  const history = histories.get(key) ?? [];
-                  history.push(numeric);
-                  histories.set(key, history);
-                });
-              });
+              const numeric = Number(value);
+              if (!Number.isFinite(numeric)) return;
 
-            const result: Record<string, number> = {};
+              const trackerId = key.replace(/::satz-\d+$/, "");
+              const rawWeight = messwerte[`${trackerId}::gewicht`];
+              const parsedWeight = Number(rawWeight);
+              const weight =
+                rawWeight !== undefined &&
+                rawWeight !== "" &&
+                Number.isFinite(parsedWeight)
+                  ? parsedWeight
+                  : undefined;
 
-            histories.forEach((history, key) => {
-              let stagnationCount = 0;
-
-              for (let index = 1; index < history.length; index += 1) {
-                if (history[index] !== history[index - 1]) break;
-                stagnationCount += 1;
-              }
-
-              result[key] = stagnationCount;
+              const history = histories.get(key) ?? [];
+              history.push({ value: numeric, weight });
+              histories.set(key, history);
             });
+          });
 
-            return result;
-          })()}
-          initialLevel={(() => {
+        const result: Record<string, number> = {};
+
+        histories.forEach((history, key) => {
+          let stagnationCount = 0;
+
+          for (let index = 1; index < history.length; index += 1) {
+            if (history[index].weight !== history[index - 1].weight) break;
+            if (history[index].value !== history[index - 1].value) break;
+            stagnationCount += 1;
+          }
+
+          result[key] = stagnationCount;
+        });
+
+        return result;
+      })()}
+      initialLevel={(() => {
     const savedLevel = days.find(
       (item) => item.datum === selectedDate,
     )?.ereignisse['sport-trainingsstufe'];

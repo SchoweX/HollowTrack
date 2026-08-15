@@ -116,6 +116,15 @@ export function StatisticsView({
     () => categoryOptions[0]?.category.id ?? '',
   );
 
+  const [selectedAreaId, setSelectedAreaId] = useState('');
+
+  const [sportSeries, setSportSeries] = useState({
+    satz1: true,
+    satz2: true,
+    satz3: false,
+    gewicht: false,
+  });
+
   const [selectedTrackerIds, setSelectedTrackerIds] = useState<string[]>(
     () => {
       const firstTracker = categoryOptions[0]?.trackers[0];
@@ -144,9 +153,55 @@ export function StatisticsView({
     (item) => item.category.id === categoryId,
   );
 
+  const isSportCategory =
+    selectedCategory?.category.zweck === 'sport' ||
+    selectedCategory?.category.name.trim().toLocaleLowerCase('de-DE') ===
+      'sport';
+
+
+  const sportAreas = useMemo(() => {
+    if (!isSportCategory || !selectedCategory) return [];
+
+    return selectedCategory.category.bereichIds
+      .flatMap((areaId) => {
+        const area = structure.bereiche.find(
+          (item) => item.id === areaId && item.aktiv,
+        );
+
+        if (!area) return [];
+
+        const trackerIds = area.ansichtIds.flatMap((viewId) => {
+          const view = structure.ansichten.find(
+            (item) => item.id === viewId && item.aktiv,
+          );
+
+          return view?.trackerIds ?? [];
+        });
+
+        const trackers = trackerIds.flatMap((trackerId) => {
+          const tracker = structure.tracker.find(
+            (item) => item.id === trackerId && item.aktiv,
+          );
+
+          return tracker ? [tracker] : [];
+        });
+
+        return trackers.length > 0 ? [{ area, trackers }] : [];
+      })
+      .sort((a, b) => a.area.position - b.area.position);
+  }, [isSportCategory, selectedCategory, structure]);
+
+  const selectedArea =
+    sportAreas.find((item) => item.area.id === selectedAreaId) ??
+    sportAreas[0];
+
+  const availableTrackers = isSportCategory
+    ? selectedArea?.trackers ?? []
+    : selectedCategory?.trackers ?? [];
+
   useEffect(() => {
     const availableIds = new Set(
-      selectedCategory?.trackers.map((tracker) => tracker.id) ?? [],
+      availableTrackers.map((tracker) => tracker.id),
     );
 
     const stillAvailable = selectedTrackerIds.filter((id) =>
@@ -157,17 +212,16 @@ export function StatisticsView({
       setSelectedTrackerIds(
         stillAvailable.length > 0
           ? stillAvailable
-          : selectedCategory?.trackers[0]
-            ? [selectedCategory.trackers[0].id]
+          : availableTrackers[0]
+            ? [availableTrackers[0].id]
             : [],
       );
     }
-  }, [selectedCategory, selectedTrackerIds]);
+  }, [availableTrackers, selectedTrackerIds]);
 
-  const selectedTrackers =
-    selectedCategory?.trackers.filter((tracker) =>
-      selectedTrackerIds.includes(tracker.id),
-    ) ?? [];
+  const selectedTrackers = availableTrackers.filter((tracker) =>
+    selectedTrackerIds.includes(tracker.id),
+  );
 
   const [period, setPeriod] = useState<7 | 30 | 90 | 'all'>(30);
 
@@ -202,20 +256,84 @@ export function StatisticsView({
 
         let hasNumericValue = false;
 
-        selectedTrackers.forEach((tracker) => {
-          const value = recordValue(record, tracker);
+        if (isSportCategory) {
+          const tracker = selectedTrackers[0];
+          const messwerte = record.messwerte ?? {};
 
-          if (typeof value === 'number' && Number.isFinite(value)) {
-            row[tracker.id] = value;
+          const addSportValue = (
+            enabled: boolean,
+            sourceKey: string,
+            targetKey: string,
+          ) => {
+            if (!enabled) return;
+
+            const rawValue = messwerte[sourceKey];
+
+            if (
+              rawValue === undefined ||
+              rawValue === null ||
+              rawValue === ''
+            ) {
+              return;
+            }
+
+            const numeric = Number(rawValue);
+
+            if (!Number.isFinite(numeric)) return;
+
+            row[targetKey] = numeric;
             hasNumericValue = true;
-          }
-        });
+          };
+
+          addSportValue(
+            sportSeries.satz1,
+            `${tracker.id}::satz-1`,
+            'satz1',
+          );
+          addSportValue(
+            sportSeries.satz2,
+            `${tracker.id}::satz-2`,
+            'satz2',
+          );
+          addSportValue(
+            sportSeries.satz3,
+            `${tracker.id}::satz-3`,
+            'satz3',
+          );
+          addSportValue(
+            sportSeries.gewicht,
+            `${tracker.id}::gewicht`,
+            'gewicht',
+          );
+        } else {
+          selectedTrackers.forEach((tracker) => {
+            const value = recordValue(record, tracker);
+
+            if (
+              typeof value === 'number' &&
+              Number.isFinite(value)
+            ) {
+              row[tracker.id] = value;
+              hasNumericValue = true;
+            }
+          });
+        }
 
         return hasNumericValue ? [row] : [];
       });
-  }, [filteredDays, selectedTrackers]);
+  }, [
+    filteredDays,
+    selectedTrackers,
+    isSportCategory,
+    sportSeries,
+  ]);
 
   const toggleTracker = (trackerId: string) => {
+    if (isSportCategory) {
+      setSelectedTrackerIds([trackerId]);
+      return;
+    }
+
     setSelectedTrackerIds((current) => {
       if (current.includes(trackerId)) {
         return current.filter((id) => id !== trackerId);
@@ -280,11 +398,8 @@ export function StatisticsView({
               );
 
               setCategoryId(nextCategoryId);
-              setSelectedTrackerIds(
-                nextCategory?.trackers[0]
-                  ? [nextCategory.trackers[0].id]
-                  : [],
-              );
+        setSelectedAreaId('');
+        setSelectedTrackerIds([]);
             }}
           >
             {categoryOptions.map(({ category }) => (
@@ -294,14 +409,97 @@ export function StatisticsView({
             ))}
           </select>
         </label>
+      {isSportCategory && sportAreas.length > 0 ? (
+        <label className="field">
+          <span className="field__label">Trainingsbereich</span>
+          <select
+            value={selectedArea?.area.id ?? ''}
+            onChange={(event) => {
+              setSelectedAreaId(event.target.value);
+              setSelectedTrackerIds([]);
+            }}
+          >
+            {sportAreas.map(({ area }) => (
+              <option key={area.id} value={area.id}>
+                {area.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       </div>
 
+      {isSportCategory ? (
+        <fieldset className="statistics-sport-series">
+          <legend>Anzeigen</legend>
+
+          <div className="statistics-sport-series__options">
+            <label>
+              <input
+                type="checkbox"
+                checked={sportSeries.satz1}
+                onChange={(event) =>
+                  setSportSeries((current) => ({
+                    ...current,
+                    satz1: event.target.checked,
+                  }))
+                }
+              />
+              <span>Satz 1</span>
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={sportSeries.satz2}
+                onChange={(event) =>
+                  setSportSeries((current) => ({
+                    ...current,
+                    satz2: event.target.checked,
+                  }))
+                }
+              />
+              <span>Satz 2</span>
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={sportSeries.satz3}
+                onChange={(event) =>
+                  setSportSeries((current) => ({
+                    ...current,
+                    satz3: event.target.checked,
+                  }))
+                }
+              />
+              <span>Satz 3</span>
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={sportSeries.gewicht}
+                onChange={(event) =>
+                  setSportSeries((current) => ({
+                    ...current,
+                    gewicht: event.target.checked,
+                  }))
+                }
+              />
+              <span>Gewicht</span>
+            </label>
+          </div>
+        </fieldset>
+      ) : null}
+
       <fieldset className="statistics-tracker-picker">
-        <legend>Tracker auswählen</legend>
+        <legend>{isSportCategory ? 'Tracker' : 'Tracker auswählen'}</legend>
 
         <p>
-          Bis zu {MAX_SELECTED_TRACKERS} Tracker können gleichzeitig
-          verglichen werden.
+          {isSportCategory
+            ? 'Wähle einen Tracker für die Sport-Statistik.'
+            : `Bis zu ${MAX_SELECTED_TRACKERS} Tracker können gleichzeitig verglichen werden.`}
         </p>
 
         <div className="statistics-tracker-options">
@@ -316,9 +514,18 @@ export function StatisticsView({
                 key={tracker.id}
               >
                 <input
-                  type="checkbox"
+                  type={isSportCategory ? 'radio' : 'checkbox'}
+                  name={
+                    isSportCategory
+                      ? 'sport-statistics-tracker'
+                      : undefined
+                  }
                   checked={checked}
-                  disabled={!checked && selectionLimitReached}
+                  disabled={
+                    !isSportCategory &&
+                    !checked &&
+                    selectionLimitReached
+                  }
                   onChange={() => toggleTracker(tracker.id)}
                 />
 
@@ -337,7 +544,9 @@ export function StatisticsView({
           </div>
 
           <span>
-            {selectedTrackers.length} von {MAX_SELECTED_TRACKERS}
+            {isSportCategory
+              ? selectedTrackers[0]?.name ?? 'Kein Tracker'
+              : `${selectedTrackers.length} von ${MAX_SELECTED_TRACKERS}`}
           </span>
         </div>
 
@@ -372,7 +581,60 @@ export function StatisticsView({
 
                 <Legend />
 
-                {selectedTrackers.map((tracker, index) => (
+                {isSportCategory && sportSeries.satz1 ? (
+              <Line
+                type="monotone"
+                dataKey="satz1"
+                name="Satz 1"
+                stroke={lineColors[0 % lineColors.length]}
+                strokeWidth={3}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+                connectNulls={false}
+              />
+            ) : null}
+
+            {isSportCategory && sportSeries.satz2 ? (
+              <Line
+                type="monotone"
+                dataKey="satz2"
+                name="Satz 2"
+                stroke={lineColors[1 % lineColors.length]}
+                strokeWidth={3}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+                connectNulls={false}
+              />
+            ) : null}
+
+            {isSportCategory && sportSeries.satz3 ? (
+              <Line
+                type="monotone"
+                dataKey="satz3"
+                name="Satz 3"
+                stroke={lineColors[2 % lineColors.length]}
+                strokeWidth={3}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+                connectNulls={false}
+              />
+            ) : null}
+
+            {isSportCategory && sportSeries.gewicht ? (
+              <Line
+                type="monotone"
+                dataKey="gewicht"
+                name="Gewicht"
+                stroke={lineColors[3 % lineColors.length]}
+                strokeWidth={3}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+                connectNulls={false}
+              />
+            ) : null}
+
+            {!isSportCategory
+              ? selectedTrackers.map((tracker, index) => (
                   <Line
                     key={tracker.id}
                     type="monotone"
@@ -384,7 +646,8 @@ export function StatisticsView({
                     activeDot={{ r: 6 }}
                     connectNulls={false}
                   />
-                ))}
+                ))
+              : null}
               </LineChart>
             </ResponsiveContainer>
           </div>
