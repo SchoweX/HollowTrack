@@ -39,16 +39,7 @@ function getCategoryTrackers(
   const trackerIds = new Set(
     category.bereichIds.flatMap((areaId) => {
       const area = structure.bereiche.find((item) => item.id === areaId);
-
-      return (
-        area?.ansichtIds.flatMap((viewId) => {
-          const view = structure.ansichten.find(
-            (item) => item.id === viewId,
-          );
-
-          return view?.trackerIds ?? [];
-        }) ?? []
-      );
+      return area?.trackerIds ?? [];
     }),
   );
 
@@ -146,7 +137,7 @@ export function DayDetail({
             className="icon-button"
             type="button"
             onClick={onClose}
-            aria-label="Tagesansicht schließen"
+            aria-label="Tag schließen"
           >
             <X size={17} />
           </button>

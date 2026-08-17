@@ -1,5 +1,4 @@
 import type {
-  Ansicht,
   Bereich,
   Eingabetyp,
   ExterneAnbindung,
@@ -70,79 +69,141 @@ const defaultAreas: { category: string; areas: DefaultArea[] }[] = [
 export function initialStructure(): Struktur {
   const kategorien: Kategorie[] = [];
   const bereiche: Bereich[] = [];
-  const ansichten: Ansicht[] = [];
-  const tracker: Tracker[] = [];
+    const tracker: Tracker[] = [];
   defaultAreas.forEach((category, categoryIndex) => {
     const categoryId = `kategorie-${slug(category.category)}`;
     const categoryAreaIds: string[] = [];
     category.areas.forEach((area, areaIndex) => {
       const areaId = `bereich-${slug(area.name)}`;
-      const viewId = `ansicht-${slug(area.name)}-tagesuebersicht`;
       categoryAreaIds.push(areaId);
-      bereiche.push({ id: areaId, name: area.name, aktiv: true, position: areaIndex + 1, ansichtIds: [viewId] });
-      ansichten.push({ id: viewId, name: 'Tagesübersicht', aktiv: true, position: 1, trackerIds: area.trackers.map((item) => item.id) });
-      tracker.push(...area.trackers);
+      bereiche.push({ id: areaId, name: area.name, aktiv: true, position: areaIndex + 1, trackerIds: area.trackers.map((item) => item.id) });
+            tracker.push(...area.trackers);
     });
     kategorien.push({ id: categoryId, name: category.category, icon: categoryIndex ? 'Leaf' : 'ShieldCheck', aktiv: true, position: categoryIndex + 1, bereichIds: categoryAreaIds });
   });
-  return { version: 2, kategorien, bereiche, ansichten, tracker, diaetModi: [], externeAnbindungen: clone(externalDefaults) };
+  return { version: 2, kategorien, bereiche, tracker, diaetModi: [], externeAnbindungen: clone(externalDefaults) };
 }
 
 export function migrateLegacy(legacy: { oberordner?: Array<{ id: string; name: string; aktiv: boolean; position: number; unterordner?: Array<{ id: string; name: string; aktiv: boolean; position: number; tracker?: Tracker[] }> }> }): Struktur {
-  const result: Struktur = { version: 2, kategorien: [], bereiche: [], ansichten: [], tracker: [], diaetModi: [], externeAnbindungen: clone(externalDefaults) };
+  const result: Struktur = {
+    version: 2,
+    kategorien: [],
+    bereiche: [],
+    tracker: [],
+    diaetModi: [],
+    externeAnbindungen: clone(externalDefaults),
+  };
+
   (legacy.oberordner || []).forEach((folder, folderIndex) => {
     const categoryId = folder.id || newId('kategorie');
-    const category: Kategorie = { id: categoryId, name: folder.name, icon: 'FolderOpen', aktiv: folder.aktiv !== false, position: folder.position || folderIndex + 1, bereichIds: [] };
+    const category: Kategorie = {
+      id: categoryId,
+      name: folder.name,
+      icon: 'FolderOpen',
+      aktiv: folder.aktiv !== false,
+      position: folder.position || folderIndex + 1,
+      bereichIds: [],
+    };
+
     (folder.unterordner || []).forEach((subfolder, subIndex) => {
       const areaId = subfolder.id || newId('bereich');
-      const viewId = `${areaId}-tagesuebersicht`;
-      category.bereichIds.push(areaId);
-      result.bereiche.push({ id: areaId, name: subfolder.name, aktiv: subfolder.aktiv !== false, position: subfolder.position || subIndex + 1, ansichtIds: [viewId] });
-      const ids: string[] = [];
+      const trackerIds: string[] = [];
+
       (subfolder.tracker || []).forEach((oldItem, trackerIndex) => {
         const existing = result.tracker.find((item) => item.id === oldItem.id);
-        if (existing) ids.push(existing.id);
-        else {
-          result.tracker.push({
-            ...makeTracker(oldItem.id.replace(/^tracker-/, ''), oldItem.name, oldItem.typ, oldItem.datentyp, oldItem.position || trackerIndex + 1, oldItem.einheit, oldItem.optionen),
-            ...oldItem,
-            icon: oldItem.icon || 'Activity', farbe: oldItem.farbe || '#1e6b65', schnellnotiz: oldItem.schnellnotiz || false,
-            schnelltracking: oldItem.schnelltracking || false, analyseAktiv: oldItem.analyseAktiv !== false, lueckenassistent: oldItem.lueckenassistent || false, datenquelle: oldItem.datenquelle || 'manuell',
-          });
-          ids.push(oldItem.id);
+
+        if (existing) {
+          trackerIds.push(existing.id);
+          return;
         }
+
+        result.tracker.push({
+          ...makeTracker(
+            oldItem.id.replace(/^tracker-/, ''),
+            oldItem.name,
+            oldItem.typ,
+            oldItem.datentyp,
+            oldItem.position || trackerIndex + 1,
+            oldItem.einheit,
+            oldItem.optionen,
+          ),
+          ...oldItem,
+          icon: oldItem.icon || 'Activity',
+          farbe: oldItem.farbe || '#1e6b65',
+          schnellnotiz: oldItem.schnellnotiz || false,
+          schnelltracking: oldItem.schnelltracking || false,
+          analyseAktiv: oldItem.analyseAktiv !== false,
+          lueckenassistent: oldItem.lueckenassistent || false,
+          datenquelle: oldItem.datenquelle || 'manuell',
+        });
+
+        trackerIds.push(oldItem.id);
       });
-      result.ansichten.push({ id: viewId, name: 'Tagesübersicht', aktiv: true, position: 1, trackerIds: ids });
+
+      category.bereichIds.push(areaId);
+
+      result.bereiche.push({
+        id: areaId,
+        name: subfolder.name,
+        aktiv: subfolder.aktiv !== false,
+        position: subfolder.position || subIndex + 1,
+        trackerIds,
+      });
     });
+
     result.kategorien.push(category);
   });
+
   return result;
 }
 
 export function mergeStructure(current: Struktur, incoming: Struktur): Struktur {
   const result = clone(current);
+
   incoming.kategorien.forEach((category) => {
-    let targetCategory = result.kategorien.find((item) => item.id === category.id);
-    if (!targetCategory) { result.kategorien.push(clone(category)); return; }
-    category.bereichIds.forEach((areaId) => { if (!targetCategory!.bereichIds.includes(areaId)) targetCategory!.bereichIds.push(areaId); });
+    let targetCategory = result.kategorien.find(
+      (item) => item.id === category.id,
+    );
+
+    if (!targetCategory) {
+      result.kategorien.push(clone(category));
+      return;
+    }
+
+    category.bereichIds.forEach((areaId) => {
+      if (!targetCategory!.bereichIds.includes(areaId)) {
+        targetCategory!.bereichIds.push(areaId);
+      }
+    });
   });
+
   incoming.bereiche.forEach((area) => {
-    if (!result.bereiche.some((item) => item.id === area.id)) result.bereiche.push(clone(area));
-    else {
-      const target = result.bereiche.find((item) => item.id === area.id)!;
-      area.ansichtIds.forEach((id) => { if (!target.ansichtIds.includes(id)) target.ansichtIds.push(id); });
+    const target = result.bereiche.find((item) => item.id === area.id);
+
+    if (!target) {
+      result.bereiche.push(clone(area));
+      return;
+    }
+
+    area.trackerIds.forEach((trackerId) => {
+      if (!target.trackerIds.includes(trackerId)) {
+        target.trackerIds.push(trackerId);
+      }
+    });
+  });
+
+  incoming.tracker.forEach((item) => {
+    if (!result.tracker.some((currentItem) => currentItem.id === item.id)) {
+      result.tracker.push(clone(item));
     }
   });
-  incoming.ansichten.forEach((view) => {
-    if (!result.ansichten.some((item) => item.id === view.id)) result.ansichten.push(clone(view));
-    else {
-      const target = result.ansichten.find((item) => item.id === view.id)!;
-      view.trackerIds.forEach((id) => { if (!target.trackerIds.includes(id)) target.trackerIds.push(id); });
-    }
-  });
-  incoming.tracker.forEach((item) => { if (!result.tracker.some((currentItem) => currentItem.id === item.id)) result.tracker.push(clone(item)); });
+
   result.diaetModi = result.diaetModi || [];
-  result.externeAnbindungen = result.externeAnbindungen?.length ? result.externeAnbindungen : clone(externalDefaults);
+  result.externeAnbindungen =
+    result.externeAnbindungen?.length
+      ? result.externeAnbindungen
+      : clone(externalDefaults);
+
   return result;
 }
 
@@ -208,8 +269,46 @@ export function normalizeStructure(saved: unknown): Struktur {
     typeof saved === 'object' &&
     Array.isArray((saved as Struktur).kategorien)
   ) {
+    const raw = clone(saved as any);
+
+    const oldViews = Array.isArray(raw.ansichten)
+      ? raw.ansichten
+      : [];
+
+    raw.bereiche = Array.isArray(raw.bereiche)
+      ? raw.bereiche.map((area: any) => {
+          if (Array.isArray(area.trackerIds)) {
+            return area;
+          }
+
+          const trackerIds = Array.isArray(area.ansichtIds)
+            ? area.ansichtIds.flatMap((viewId: string) => {
+                const view = oldViews.find(
+                  (item: any) => item.id === viewId,
+                );
+
+                return Array.isArray(view?.trackerIds)
+                  ? view.trackerIds
+                  : [];
+              })
+            : [];
+
+          const {
+            ansichtIds: _ansichtIds,
+            ...cleanArea
+          } = area;
+
+          return {
+            ...cleanArea,
+            trackerIds: [...new Set(trackerIds)],
+          };
+        })
+      : [];
+
+    delete raw.ansichten;
+
     return organizePurposeCategories(
-      mergeStructure(base, saved as Struktur),
+      mergeStructure(base, raw as Struktur),
     );
   }
 

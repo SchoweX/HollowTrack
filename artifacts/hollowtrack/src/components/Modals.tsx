@@ -64,7 +64,6 @@ export function Modal({
   const isMove = modal.mode === "move";
   const categories = structure.kategorien.filter((item) => item.aktiv);
   const areas = structure.bereiche.filter((item) => item.aktiv);
-  const views = structure.ansichten.filter((item) => item.aktiv);
   const title = isMove
     ? "Bereich verschieben"
     : isRename
@@ -79,23 +78,17 @@ export function Modal({
           ? "Kategorie anlegen"
           : modal.type === "bereich"
             ? "Bereich anlegen"
-            : modal.type === "ansicht"
-              ? "Ansicht anlegen"
-              : "Tracker anlegen";
+            : "Tracker anlegen";
   const needsParent =
     isMove ||
-    (!isRename &&
-      modal.type !== "kategorie" &&
-      modal.type !== "tracker");
+    (!isRename && modal.type !== "kategorie");
   const parentOptions = isMove
     ? categories
         .filter((category) => !category.bereichIds.includes(modal.id))
         .map((item) => ({ id: item.id, name: item.name }))
     : modal.type === "bereich"
       ? categories.map((item) => ({ id: item.id, name: item.name }))
-      : modal.type === "ansicht"
-        ? areas.map((item) => ({ id: item.id, name: item.name }))
-        : views.map((item) => ({ id: item.id, name: item.name }));
+      : areas.map((item) => ({ id: item.id, name: item.name }));
   return (
     <div
       className="modal-backdrop"
@@ -119,7 +112,7 @@ export function Modal({
               {isMove
                 ? "Der Bereich bleibt erhalten und wird einer anderen Kategorie zugeordnet."
                 : isTracker
-                  ? "Tracker werden zentral gespeichert und können mehreren Ansichten zugeordnet werden."
+                  ? "Tracker werden direkt dem gewählten Bereich zugeordnet."
                   : "Änderungen werden direkt auf diesem Gerät gespeichert."}
             </p>
           </div>
@@ -197,9 +190,7 @@ export function Modal({
                   ? "Neue Kategorie"
                   : modal.type === "bereich"
                     ? "Kategorie"
-                    : modal.type === "ansicht"
-                      ? "Bereich"
-                      : "Ansicht"}
+                    : "Bereich"}
               </span>
               <select
                 value={parentId}

@@ -1,5 +1,4 @@
 import type {
-  Ansicht,
   Formularwert,
   Struktur,
   Tagesdatensatz,
@@ -9,7 +8,6 @@ import { formatNumber, newId, valueExists } from './utils';
 
 export function emptyRecord(date: string): Tagesdatensatz { const now = new Date().toISOString(); return { id: newId('tag'), datum: date, messwerte: {}, ereignisse: {}, notizen: '', kategorieNotizen: {}, erstelltAm: now, geaendertAm: now }; }
 export function getAllTrackers(structure: Struktur): Tracker[] { return structure.tracker; }
-export function getViewTrackers(structure: Struktur, view: Ansicht): Tracker[] { return view.trackerIds.map((id) => structure.tracker.find((item) => item.id === id)).filter((item): item is Tracker => Boolean(item)); }
 export function recordValue(record: Tagesdatensatz | undefined, item: Tracker): Formularwert {
   if (!record) return undefined;
 

@@ -66,7 +66,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 import type {
-  Ansicht,
   Bereich,
   Datenquelle,
   DiaetModus,
@@ -116,7 +115,6 @@ function loadBackupInfo(): Sicherungsinfo {
 import {
   emptyRecord,
   getAllTrackers,
-  getViewTrackers,
   mergeRecords,
   recordValue,
   summaryFor,
@@ -190,22 +188,76 @@ function Home() {
       `HollowTrack – ${navigation.find((item) => item.id === page)?.label || 'Heute'}`,
     );
   }, [page]);
-  const counts = useMemo(() => ({ categories: structure.kategorien.length, areas: structure.bereiche.length, views: structure.ansichten.length, trackers: structure.tracker.length }), [structure]);
+  const counts = useMemo(() => ({ categories: structure.kategorien.length, areas: structure.bereiche.length, trackers: structure.tracker.length }), [structure]);
   const activeTrackerCount = structure.tracker.filter((item) => item.aktiv).length;
   const sortedDays = useMemo(() => [...days].sort((a, b) => b.datum.localeCompare(a.datum)), [days]);
-  const flattenedItems = useMemo(() => sorted(structure.kategorien).flatMap((category) => [
-    { type: 'kategorie' as ElementTyp, id: category.id, name: category.name, active: category.aktiv, label: 'Kategorie', className: '' },
-    ...category.bereichIds.flatMap((areaId) => { const area = structure.bereiche.find((item) => item.id === areaId); if (!area) return []; return [{ type: 'bereich' as ElementTyp, id: area.id, name: area.name, active: area.aktiv, label: `Bereich in „${category.name}“`, className: 'verwaltungseintrag--unterordner' }, ...area.ansichtIds.flatMap((viewId) => { const view = structure.ansichten.find((item) => item.id === viewId); if (!view) return []; return [{ type: 'ansicht' as ElementTyp, id: view.id, name: view.name, active: view.aktiv, label: `Ansicht in „${area.name}“`, className: 'verwaltungseintrag--unterordner' }]; })]; }),
-  ]), [structure]);
-  const trackerItems = structure.tracker.map((item) => ({ type: 'tracker' as ElementTyp, id: item.id, name: item.name, active: item.aktiv, label: `${item.typ} · ${structure.ansichten.filter((view) => view.trackerIds.includes(item.id)).length} Ansichten`, className: 'verwaltungseintrag--tracker' }));
+  const flattenedItems = useMemo(
+    () =>
+      sorted(structure.kategorien).flatMap((category) => [
+        {
+          type: 'kategorie' as ElementTyp,
+          id: category.id,
+          name: category.name,
+          active: category.aktiv,
+          label: 'Kategorie',
+          className: '',
+        },
+        ...category.bereichIds.flatMap((areaId) => {
+          const area = structure.bereiche.find(
+            (item) => item.id === areaId,
+          );
 
+          if (!area) return [];
 
+          return [
+            {
+              type: 'bereich' as ElementTyp,
+              id: area.id,
+              name: area.name,
+              active: area.aktiv,
+              label: `Bereich in „${category.name}“`,
+              className: 'verwaltungseintrag--unterordner',
+            },
+            ...area.trackerIds.flatMap((trackerId) => {
+              const tracker = structure.tracker.find(
+                (item) => item.id === trackerId,
+              );
+
+              if (!tracker) return [];
+
+              return [{
+                type: 'tracker' as ElementTyp,
+                id: tracker.id,
+                name: tracker.name,
+                active: tracker.aktiv,
+                label: `Tracker in „${area.name}“`,
+                className: 'verwaltungseintrag--tracker',
+              }];
+            }),
+          ];
+        }),
+      ]),
+    [structure],
+  );
+
+  const trackerItems = structure.tracker.map((item) => ({
+    type: 'tracker' as ElementTyp,
+    id: item.id,
+    name: item.name,
+    active: item.aktiv,
+    label: `${item.typ} · ${
+      structure.bereiche.filter((area) =>
+        area.trackerIds.includes(item.id),
+      ).length
+    } Bereiche`,
+    className: 'verwaltungseintrag--tracker',
+  }));
 
   const showSuccess = (message: string) => {
     setSuccess(message);
     browserAppPlatform.schedule(() => setSuccess(''), 3500);
   };
-  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); const view = structure.ansichten.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'ansicht' ? area?.id || '' : type === 'tracker' ? view?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setErfassungsart('einzelwert'); setTrackerTyp('standard'); setGewichtAktiv(false); setTrainingsgewicht('');
+  const openCreate = (type: ElementTyp) => { const category = structure.kategorien.find((item) => item.aktiv); const area = structure.bereiche.find((item) => item.aktiv); setModalName(''); setParentId(type === 'bereich' ? category?.id || '' : type === 'tracker' ? area?.id || '' : ''); setInputType('Text'); setDataType('Messwert'); setErfassungsart('einzelwert'); setTrackerTyp('standard'); setGewichtAktiv(false); setTrainingsgewicht('');
     setSelbsteinschaetzungAktiv(false);
     setSelbsteinschaetzungName('Selbsteinschätzung');
     setModal({ mode: 'create', type }); };
@@ -218,7 +270,7 @@ function Home() {
     setParentId(target.id);
     setModal({ mode: 'move', type: 'bereich', id });
   };
-  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.ansichten.find((view) => view.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setErfassungsart(item.erfassungsart ?? 'einzelwert'); setTrackerTyp(item.trackerTyp ?? (item.erfassungsart === 'saetze' ? 'training' : 'standard')); setGewichtAktiv(
+  const openEditTracker = (item: Tracker) => { setModalName(item.name); setParentId(structure.bereiche.find((area) => area.trackerIds.includes(item.id))?.id || ''); setInputType(item.typ); setDataType(item.datentyp); setErfassungsart(item.erfassungsart ?? 'einzelwert'); setTrackerTyp(item.trackerTyp ?? (item.erfassungsart === 'saetze' ? 'training' : 'standard')); setGewichtAktiv(
     item.trainingsgewichtAktiv ??
       item.trainingsgewicht !== undefined,
   );
@@ -292,7 +344,7 @@ function Home() {
           if (area) area.position = targetCategory.bereichIds.length;
         }
       } else if (modal.mode === 'rename') {
-        const target = modal.type === 'kategorie' ? next.kategorien.find((item) => item.id === modal.id) : modal.type === 'bereich' ? next.bereiche.find((item) => item.id === modal.id) : next.ansichten.find((item) => item.id === modal.id);
+        const target = modal.type === 'kategorie' ? next.kategorien.find((item) => item.id === modal.id) : next.bereiche.find((item) => item.id === modal.id);
         if (target) target.name = value;
       } else if (modal.mode === 'edit') {
         if (modal.type === 'kategorie') {
@@ -339,15 +391,14 @@ function Home() {
         const target = next.tracker.find((item) => item.id === modal.id);
         if (target) { target.name = value; target.typ = inputType; target.datentyp = dataType; target.erfassungsart = erfassungsart; target.trackerTyp = trackerTyp;
           target.trainingsgewichtAktiv = gewichtAktiv;
-          delete target.trainingsgewicht; if (parentId) { const view = next.ansichten.find((item) => item.id === parentId); if (view && !view.trackerIds.includes(target.id)) view.trackerIds.push(target.id); } }
+          delete target.trainingsgewicht; if (parentId) { const area = next.bereiche.find((item) => item.id === parentId); if (area && !area.trackerIds.includes(target.id)) area.trackerIds.push(target.id); } }
       } else if (modal.type === 'kategorie') next.kategorien.push({ id: newId('kategorie'), name: value, icon: 'FolderOpen', aktiv: true, position: next.kategorien.length + 1, bereichIds: [],
         selbsteinschaetzungAktiv,
         selbsteinschaetzungName:
           selbsteinschaetzungName.trim() || 'Selbsteinschätzung'
       });
-      else if (modal.type === 'bereich') { const category = next.kategorien.find((item) => item.id === parentId); if (category) { const id = newId('bereich'); const viewId = newId('ansicht'); category.bereichIds.push(id); next.bereiche.push({ id, name: value, aktiv: true, position: category.bereichIds.length, ansichtIds: [viewId] }); next.ansichten.push({ id: viewId, name: 'Tagesübersicht', aktiv: true, position: 1, trackerIds: [] }); } }
-      else if (modal.type === 'ansicht') { const area = next.bereiche.find((item) => item.id === parentId); if (area) { const id = newId('ansicht'); area.ansichtIds.push(id); next.ansichten.push({ id, name: value, aktiv: true, position: area.ansichtIds.length, trackerIds: [] }); } }
-      else { const view = next.ansichten.find((item) => item.id === parentId); const item = makeTracker(
+      else if (modal.type === 'bereich') { const category = next.kategorien.find((item) => item.id === parentId); if (category) { const id = newId('bereich'); category.bereichIds.push(id); next.bereiche.push({ id, name: value, aktiv: true, position: category.bereichIds.length, trackerIds: [] }); } }
+      else { const area = next.bereiche.find((item) => item.id === parentId); const item = makeTracker(
             newId('tracker'),
             value,
             inputType,
@@ -359,7 +410,7 @@ function Home() {
             trackerTyp,
           );
               item.trainingsgewichtAktiv = gewichtAktiv;
-              next.tracker.push(item); if (view && !view.trackerIds.includes(item.id)) view.trackerIds.push(item.id); }
+              next.tracker.push(item); if (area && !area.trackerIds.includes(item.id)) area.trackerIds.push(item.id); }
       return next;
     });
     setModal(null);
@@ -414,20 +465,14 @@ function Home() {
         (item) => item.id === areaId && item.aktiv,
       );
 
-      area?.ansichtIds.forEach((viewId) => {
-        const view = structure.ansichten.find(
-          (item) => item.id === viewId && item.aktiv,
+      area?.trackerIds.forEach((trackerId) => {
+        const tracker = structure.tracker.find(
+          (item) => item.id === trackerId && item.aktiv,
         );
 
-        view?.trackerIds.forEach((trackerId) => {
-          const tracker = structure.tracker.find(
-            (item) => item.id === trackerId && item.aktiv,
-          );
-
-          if (tracker) {
-            sportTrackerIds.add(tracker.id);
-          }
-        });
+        if (tracker) {
+          sportTrackerIds.add(tracker.id);
+        }
       });
     });
 
@@ -616,7 +661,7 @@ function Home() {
       category.name.trim().toLocaleLowerCase('de-DE') !== 'sport',
   ),
 }} date={selectedDate} days={days} onSave={saveDay} onReset={resetDay} success={success} /></section>;
-  const settings = <><SectionHeader eyebrow="Verwaltung" title="Einstellungen" description="Verwalte Kategorien, Bereiche, Ansichten und globale Tracker. Sichere deine lokalen Daten." icon={Settings} /><div className="settings-intro"><CircleHelp size={16} /><span>Tracker werden nur einmal gespeichert und können in mehreren Ansichten erscheinen. Diätmodus und externe Anbindungen sind für spätere Funktionen vorbereitet.</span></div><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => openCreate('kategorie')}><Plus size={15} />Neue Kategorie</button><button className="button" type="button" onClick={() => openCreate('bereich')}><Plus size={15} />Neuer Bereich</button><button className="button" type="button" onClick={() => openCreate('ansicht')}><Plus size={15} />Neue Ansicht</button><button className="button" type="button" onClick={() => openCreate('tracker')}><Plus size={15} />Neuer Tracker</button></div><div className="verwaltungsliste">{[...flattenedItems, ...trackerItems].map((item) => <AdminItem
+  const settings = <><SectionHeader eyebrow="Verwaltung" title="Einstellungen" description="Verwalte Kategorien, Bereiche und Tracker. Sichere deine lokalen Daten." icon={Settings} /><div className="settings-intro"><CircleHelp size={16} /><span>Tracker werden direkt ihren Bereichen zugeordnet. Diätmodus und externe Anbindungen sind für spätere Funktionen vorbereitet.</span></div><div className="verwaltung-aktionen"><button className="button button--primary" type="button" onClick={() => openCreate('kategorie')}><Plus size={15} />Neue Kategorie</button><button className="button" type="button" onClick={() => openCreate('bereich')}><Plus size={15} />Neuer Bereich</button><button className="button" type="button" onClick={() => openCreate('tracker')}><Plus size={15} />Neuer Tracker</button></div><div className="verwaltungsliste">{[...flattenedItems, ...trackerItems].map((item) => <AdminItem
   item={item}
   structure={structure}
   toggleStatus={toggleStatus}
@@ -629,7 +674,7 @@ function Home() {
   openMoveArea={openMoveArea}
 />)}</div><section className="backup-panel"><div className="backup-panel__heading"><div><p className="module__eyebrow">Datensicherung</p><h3 className="backup-panel__title">Lokale Daten verwalten</h3></div><FileJson size={22} /></div><p className="backup-warning">Die Daten werden nur auf diesem Gerät und in diesem Browser gespeichert. Regelmäßige JSON-Exporte werden empfohlen.</p><div className="backup-stats"><span><strong>{days.length}</strong> gespeicherte Tage</span><span>Letzte Sicherung: <strong>{formatDateTime(backupInfo.letzteSicherung)}</strong></span><span>Letzter Import: <strong>{formatDateTime(backupInfo.letzterImport)}</strong></span></div><div className="backup-actions"><button className="button button--primary" type="button" onClick={exportData}><Download size={15} />Daten als JSON exportieren</button><JsonFilePicker onFile={(file) => void prepareImport(file)} /><button className="button" type="button" onClick={importChatData} disabled={backupInfo.chatImportiert}><Import size={15} />{backupInfo.chatImportiert ? 'Chatdaten bereits importiert' : 'Bisherige Chatdaten importieren'}</button></div>{importMessage ? <p className="save-success" role="status"><Check size={14} />{importMessage}</p> : null}{importPreview ? <div className="import-preview"><h3>Importvorschau</h3><p>{importPreview.neueTage.length} neue Datensätze · {importPreview.konfliktTage.length} bereits vorhanden</p>{importPreview.konfliktTage.map((date) => <label className="import-conflict" key={date}><span>{formatDate(date)}</span><select value={importDecisions[date]} onChange={(event) => setImportDecisions((current) => ({ ...current, [date]: event.target.value as ImportKonflikt }))}><option value="behalten">Vorhandenen Eintrag behalten</option><option value="uebernehmen">Importierten Eintrag übernehmen</option><option value="zusammenfuehren">Datensätze zusammenführen</option></select></label>)}<div className="modal__actions"><button className="button button--quiet" type="button" onClick={() => setImportPreview(null)}>Import abbrechen</button><button className="button button--primary" type="button" onClick={executeImport}><Check size={14} />Import durchführen</button></div></div> : null}</section></>;
 
-  return <div className="app-shell"><header className="app-header"><div className="app-header__inner"><a className="app-logo" href={runtimeConfig.basePath} aria-label="HollowTrack – Heute öffnen" onClick={(event) => { event.preventDefault(); go('heute'); }}><span className="app-logo__mark">H</span><span>HollowTrack</span></a><p className="app-header__subtitle">Dein persönlicher Überblick</p><div className="app-header__meta"><span className="status-dot" />Lokal gespeichert</div></div></header><nav className="main-navigation" aria-label="Hauptnavigation"><div className="main-navigation__inner">{navigation.map(({ id, label, icon: Icon }) => <a className={`main-navigation__link ${page === id ? 'main-navigation__link--active' : ''}`} href={`${runtimeConfig.basePath.replace(/\/$/, '')}/${id === 'heute' ? '' : id}`} key={id} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={15} />{label}</a>)}</div></nav><main className="app-main">{page === 'heute' ? today : null}{page === 'tracker' ? <section className="module module--wide"><div className="module__heading"><div><p className="module__eyebrow">Deine Architektur</p><h1 className="module__title">Tracker</h1></div><p className="module__status">{counts.categories} Kategorien · {counts.areas} Bereiche · {counts.views} Ansichten · {counts.trackers} Tracker</p></div><p className="module__description">Kategorien und Bereiche dienen der Übersicht. Tracker sind zentral und können in mehreren Ansichten verwendet werden.</p><div className="tracker-view"><TreeView structure={structure} /></div></section> : null}{page === 'verlauf' ? <section className="module module--wide"><SectionHeader title="Verlauf" description="Gespeicherte Tage, neuester Tag zuerst. Tippe auf einen Tag für die vollständige Ansicht." icon={History} />{sortedDays.length ? <div className="history-list">{sortedDays.map((record) => <button className="history-card" type="button" key={record.id} onClick={() => setDetailRecord(record)}><span className="history-card__date">{formatDate(record.datum)}</span><strong>{summaryFor(record, structure)}</strong><span className="history-card__hint">Vollständigen Tag öffnen</span></button>)}</div> : <EmptyState text="Noch keine Verlaufsdaten vorhanden." icon={Clock3} />}</section> : null}{page === 'statistik' ? (
+  return <div className="app-shell"><header className="app-header"><div className="app-header__inner"><a className="app-logo" href={runtimeConfig.basePath} aria-label="HollowTrack – Heute öffnen" onClick={(event) => { event.preventDefault(); go('heute'); }}><span className="app-logo__mark">H</span><span>HollowTrack</span></a><p className="app-header__subtitle">Dein persönlicher Überblick</p><div className="app-header__meta"><span className="status-dot" />Lokal gespeichert</div></div></header><nav className="main-navigation" aria-label="Hauptnavigation"><div className="main-navigation__inner">{navigation.map(({ id, label, icon: Icon }) => <a className={`main-navigation__link ${page === id ? 'main-navigation__link--active' : ''}`} href={`${runtimeConfig.basePath.replace(/\/$/, '')}/${id === 'heute' ? '' : id}`} key={id} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={15} />{label}</a>)}</div></nav><main className="app-main">{page === 'heute' ? today : null}{page === 'tracker' ? <section className="module module--wide"><div className="module__heading"><div><p className="module__eyebrow">Deine Architektur</p><h1 className="module__title">Tracker</h1></div><p className="module__status">{counts.categories} Kategorien · {counts.areas} Bereiche · {counts.trackers} Tracker</p></div><p className="module__description">Kategorien und Bereiche dienen der Übersicht. Tracker sind direkt ihren Bereichen zugeordnet.</p><div className="tracker-view"><TreeView structure={structure} /></div></section> : null}{page === 'verlauf' ? <section className="module module--wide"><SectionHeader title="Verlauf" description="Gespeicherte Tage, neuester Tag zuerst. Tippe auf einen Tag für den vollständigen Eintrag." icon={History} />{sortedDays.length ? <div className="history-list">{sortedDays.map((record) => <button className="history-card" type="button" key={record.id} onClick={() => setDetailRecord(record)}><span className="history-card__date">{formatDate(record.datum)}</span><strong>{summaryFor(record, structure)}</strong><span className="history-card__hint">Vollständigen Tag öffnen</span></button>)}</div> : <EmptyState text="Noch keine Verlaufsdaten vorhanden." icon={Clock3} />}</section> : null}{page === 'statistik' ? (
           <section className="module module--wide">
             <SectionHeader
               eyebrow="Auswertung"
@@ -936,15 +981,7 @@ function Home() {
                   setStructure((current) => {
                     const next = clone(current);
 
-                    const trackerIds = new Set(
-                      area.ansichtIds.flatMap((viewId) => {
-                        const view = next.ansichten.find(
-                          (item) => item.id === viewId,
-                        );
-
-                        return view?.trackerIds ?? [];
-                      }),
-                    );
+                    const trackerIds = new Set(area.trackerIds);
 
                     const orderedTrackers = next.tracker
                       .filter((item) => trackerIds.has(item.id))
@@ -998,15 +1035,8 @@ function Home() {
     setModal({ mode: 'create', type: 'bereich' });
   }}
   onCreateTracker={(area) => {
-    const viewId = area.ansichtIds[0];
-
-    if (!viewId) {
-      showSuccess('Dieser Bereich hat noch keine Ansicht.');
-      return;
-    }
-
     setModalName('');
-    setParentId(viewId);
+    setParentId(area.id);
     setInputType('Text');
     setDataType('Messwert');
     setErfassungsart('einzelwert');

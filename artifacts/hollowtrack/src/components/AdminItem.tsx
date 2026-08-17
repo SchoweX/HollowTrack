@@ -107,25 +107,14 @@ export function AdminItem({
             </button>
           ) : null}
 
-        {item.type !== 'ansicht' ? (
-          <button
-            className="aktions-button"
-            type="button"
-            onClick={() => openEditStructureItem(item)}
-          >
-            <Pencil size={14} />
-            Bearbeiten
-          </button>
-        ) : (
-          <button
-            className="aktions-button"
-            type="button"
-            onClick={() => openRename(item.type, item.id, item.name)}
-          >
-            <Pencil size={14} />
-            Umbenennen
-          </button>
-        )}
+        <button
+          className="aktions-button"
+          type="button"
+          onClick={() => openEditStructureItem(item)}
+        >
+          <Pencil size={14} />
+          Bearbeiten
+        </button>
 
           <button
             className="aktions-button aktions-button--loeschen"

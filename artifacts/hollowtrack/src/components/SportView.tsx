@@ -297,15 +297,7 @@ export function SportView({
         ): area is NonNullable<typeof area> => Boolean(area),
       )
       .map((area) => {
-        const trackerIds = new Set(
-          area.ansichtIds.flatMap((viewId) => {
-            const view = structure.ansichten.find(
-              (item) => item.id === viewId && item.aktiv,
-            );
-
-            return view?.trackerIds ?? [];
-          }),
-        );
+        const trackerIds = new Set(area.trackerIds);
 
         const trackers = structure.tracker
           .filter(

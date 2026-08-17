@@ -226,15 +226,7 @@ export function TodaySettingsTree({
             ) : null}
 
             {areas.map((area) => {
-              const trackerIds = new Set(
-                area.ansichtIds.flatMap((viewId) => {
-                  const view = structure.ansichten.find(
-                    (item) => item.id === viewId,
-                  );
-
-                  return view?.trackerIds ?? [];
-                }),
-              );
+              const trackerIds = new Set(area.trackerIds);
 
               const trackers = byPosition(
                 structure.tracker.filter((tracker) =>

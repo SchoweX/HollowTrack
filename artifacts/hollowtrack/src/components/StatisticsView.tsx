@@ -62,13 +62,7 @@ function trackersForCategory(
 
       if (!area) return [];
 
-      return area.ansichtIds.flatMap((viewId) => {
-        const view = structure.ansichten.find(
-          (item) => item.id === viewId && item.aktiv,
-        );
-
-        return view?.trackerIds ?? [];
-      });
+      return area.trackerIds;
     }),
   );
 
@@ -170,13 +164,7 @@ export function StatisticsView({
 
         if (!area) return [];
 
-        const trackerIds = area.ansichtIds.flatMap((viewId) => {
-          const view = structure.ansichten.find(
-            (item) => item.id === viewId && item.aktiv,
-          );
-
-          return view?.trackerIds ?? [];
-        });
+        const trackerIds = area.trackerIds;
 
         const trackers = trackerIds.flatMap((trackerId) => {
           const tracker = structure.tracker.find(

@@ -64,13 +64,6 @@ export type Bereich = {
   name: string;
   aktiv: boolean;
   position: number;
-  ansichtIds: string[];
-};
-export type Ansicht = {
-  id: string;
-  name: string;
-  aktiv: boolean;
-  position: number;
   trackerIds: string[];
 };
 export type DiaetModus = {
@@ -93,7 +86,6 @@ export type Struktur = {
   version: 2;
   kategorien: Kategorie[];
   bereiche: Bereich[];
-  ansichten: Ansicht[];
   tracker: Tracker[];
   diaetModi: DiaetModus[];
   externeAnbindungen: ExterneAnbindung[];
@@ -110,10 +102,10 @@ export type Tagesdatensatz = {
   geaendertAm: string;
 };
 export type Sicherungsinfo = { letzteSicherung?: string; letzterImport?: string; chatImportiert?: boolean };
-export type ElementTyp = 'kategorie' | 'bereich' | 'ansicht' | 'tracker';
+export type ElementTyp = 'kategorie' | 'bereich' | 'tracker';
 export type ModalState =
   | { mode: 'create'; type: ElementTyp }
-  | { mode: 'rename'; type: 'kategorie' | 'bereich' | 'ansicht'; id: string }
+  | { mode: 'rename'; type: 'kategorie' | 'bereich'; id: string }
   | { mode: 'move'; type: 'bereich'; id: string }
   | { mode: 'edit'; type: 'tracker'; id: string }
   | null;

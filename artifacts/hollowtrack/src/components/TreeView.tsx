@@ -1,9 +1,90 @@
-import { categoryIcon } from '../categoryIcons';
-import type { Ansicht, Bereich, Struktur } from '../types';
-import { getViewTrackers } from '../records';
-import { Eye, Folder } from 'lucide-react';
-import { sorted } from '../utils';
+import { categoryIcon } from "../categoryIcons";
+import type { Bereich, Struktur, Tracker } from "../types";
+import { Folder } from "lucide-react";
+import { sorted } from "../utils";
 
 export function TreeView({ structure }: { structure: Struktur }) {
-  return <>{sorted(structure.kategorien).map((category) => { const CategoryIcon = categoryIcon(category.icon); return <section className={`tracker-oberordner ${category.aktiv ? '' : 'element--deaktiviert'}`} key={category.id}><details open><summary className="tracker-oberordner__kopf"><span className="tracker-oberordner__kopf-content"><CategoryIcon size={16} /><span className="tracker-oberordner__titel">{category.name}</span></span></summary><div className="tracker-oberordner__inhalt">{sorted(category.bereichIds.map((id) => structure.bereiche.find((item) => item.id === id)).filter((item): item is Bereich => Boolean(item))).map((area) => <details className={`tracker-unterordner ${area.aktiv ? '' : 'element--deaktiviert'}`} open key={area.id}><summary className="tracker-unterordner__kopf"><span className="tracker-unterordner__kopf-content"><Folder size={15} /><span className="tracker-unterordner__titel">{area.name}</span></span></summary><div className="tracker-unterordner__inhalt">{sorted(area.ansichtIds.map((id) => structure.ansichten.find((item) => item.id === id)).filter((item): item is Ansicht => Boolean(item))).map((view) => <div className="tracker-ansicht" key={view.id}><div className="tracker-ansicht__title"><Eye size={13} />{view.name}</div>{getViewTrackers(structure, view).length ? getViewTrackers(structure, view).map((item) => <div className={`tracker-eintrag ${item.aktiv ? '' : 'element--deaktiviert'}`} key={item.id}><span className="tracker-eintrag__name">{item.name}</span><span className="tracker-eintrag__meta">{item.typ}{item.einheit ? ` · ${item.einheit}` : ''}</span></div>) : <p className="tracker-leer">Noch keine Tracker vorhanden.</p>}</div>)}</div></details>)}</div></details></section>; })}</>;
+  return (
+    <>
+      {sorted(structure.kategorien).map((category) => {
+        const CategoryIcon = categoryIcon(category.icon);
+
+        return (
+          <section
+            className={`tracker-oberordner ${category.aktiv ? "" : "element--deaktiviert"}`}
+            key={category.id}
+          >
+            <details open>
+              <summary className="tracker-oberordner__kopf">
+                <span className="tracker-oberordner__kopf-content">
+                  <CategoryIcon size={16} />
+                  <span className="tracker-oberordner__titel">
+                    {category.name}
+                  </span>
+                </span>
+              </summary>
+
+              <div className="tracker-oberordner__inhalt">
+                {sorted(
+                  category.bereichIds
+                    .map((id) =>
+                      structure.bereiche.find((item) => item.id === id),
+                    )
+                    .filter((item): item is Bereich => Boolean(item)),
+                ).map((area) => {
+                  const trackers = sorted(
+                    area.trackerIds
+                      .map((id) =>
+                        structure.tracker.find((item) => item.id === id),
+                      )
+                      .filter((item): item is Tracker => Boolean(item)),
+                  );
+
+                  return (
+                    <details
+                      className={`tracker-unterordner ${area.aktiv ? "" : "element--deaktiviert"}`}
+                      open
+                      key={area.id}
+                    >
+                      <summary className="tracker-unterordner__kopf">
+                        <span className="tracker-unterordner__kopf-content">
+                          <Folder size={15} />
+                          <span className="tracker-unterordner__titel">
+                            {area.name}
+                          </span>
+                        </span>
+                      </summary>
+
+                      <div className="tracker-unterordner__inhalt">
+                        {trackers.length ? (
+                          trackers.map((item) => (
+                            <div
+                              className={`tracker-eintrag ${item.aktiv ? "" : "element--deaktiviert"}`}
+                              key={item.id}
+                            >
+                              <span className="tracker-eintrag__name">
+                                {item.name}
+                              </span>
+                              <span className="tracker-eintrag__meta">
+                                {item.typ}
+                                {item.einheit ? ` · ${item.einheit}` : ""}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="tracker-leer">
+                            Noch keine Tracker vorhanden.
+                          </p>
+                        )}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            </details>
+          </section>
+        );
+      })}
+    </>
+  );
 }

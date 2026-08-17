@@ -14,9 +14,7 @@ export function toggleStructureStatus(
       ? next.kategorien
       : type === 'bereich'
         ? next.bereiche
-        : type === 'ansicht'
-          ? next.ansichten
-          : next.tracker;
+        : next.tracker;
 
   const target = list.find((item) => item.id === id);
 
@@ -54,14 +52,14 @@ export function deleteStructureElement(
     const areas = next.bereiche.filter((area) =>
       category?.bereichIds.includes(area.id),
     );
-    const viewIds = areas.flatMap((area) => area.ansichtIds);
+    const trackerIds = areas.flatMap((area) => area.trackerIds);
 
     next.kategorien = next.kategorien.filter((item) => item.id !== id);
     next.bereiche = next.bereiche.filter(
       (item) => !category?.bereichIds.includes(item.id),
     );
-    next.ansichten = next.ansichten.filter(
-      (item) => !viewIds.includes(item.id),
+    next.tracker = next.tracker.filter(
+      (item) => !trackerIds.includes(item.id),
     );
   } else if (type === 'bereich') {
     const area = next.bereiche.find((item) => item.id === id);
@@ -71,16 +69,16 @@ export function deleteStructureElement(
     });
 
     next.bereiche = next.bereiche.filter((item) => item.id !== id);
-    next.ansichten = next.ansichten.filter(
-      (item) => !area?.ansichtIds.includes(item.id),
+    next.tracker = next.tracker.filter(
+      (item) => !area?.trackerIds.includes(item.id),
     );
-  } else if (type === 'ansicht') {
+  } else {
     next.bereiche.forEach((item) => {
-      item.ansichtIds = item.ansichtIds.filter((viewId) => viewId !== id);
+      item.trackerIds = item.trackerIds.filter(
+        (trackerId) => trackerId !== id,
+      );
     });
 
-    next.ansichten = next.ansichten.filter((item) => item.id !== id);
-  } else {
     next.tracker = next.tracker.filter((item) => item.id !== id);
   }
 
