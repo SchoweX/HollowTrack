@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HollowTrack</string>
+    <string name="title_activity_main">HollowTrack</string>
+    <string name="package_name">com.hollowtrack.app</string>
+    <string name="custom_url_scheme">com.hollowtrack.app</string>
+</resources>
